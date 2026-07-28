@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Empresa</title>
+</head>
+<body>
+    <h2>Dashboard - Empresa</h2>
+    <div id="companySelector" style="margin-bottom:15px;"></div>
+
+    <button onclick="window.location.href='/company/companies.html'">+ Nova Empresa</button>
+    <button onclick="window.location.href='/company/edit-company.html'">Editar / Excluir Empresa</button>
+    <button onclick="window.location.href='/company/services.html'">Serviços</button>
+    <button onclick="window.location.href='/company/schedule.html'">Agenda</button>
+    <button onclick="window.location.href='/company/employees.html'">Funcionários</button>
+    <button onclick="window.location.href='/company/settings.html'">Configurações</button>
+    <button onclick="window.location.href='/shared/weekview.html'">Agenda Semanal</button>
+    <button onclick="window.location.href='/client/agendar.html'">Agendar para um Cliente</button>
+    <button onclick="logout()">Sair</button>
+
+    <script>
+        const API_URL = "http://localhost:5182";
+
+        const userType = localStorage.getItem("userType");
+        if (userType !== "Company") {
+            window.location.href = "/shared/login.html";
+        }
+
+        async function loadCompanies() {
+            const token = localStorage.getItem("token");
+            try {
+                const resp = await fetch(`${API_URL}/companies`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await resp.json();
+                const container = document.getElementById('companySelector');
+                if (data.length === 0) {
+                    container.innerHTML = '<p>Nenhuma empresa. <a href="/company/companies.html">Criar empresa</a></p>';
+                    return;
+                }
+                let html = '<label for="companySelect">Empresa ativa: </label>';
+                html += '<select id="companySelect" onchange="selectCompany()">';
+                data.forEach(c => {
+                    const selected = c.id === localStorage.getItem("companyId") ? 'selected' : '';
+                    html += `<option value="${c.id}" ${selected}>${c.name}</option>`;
+                });
+                html += '</select>';
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('Erro ao carregar empresas:', e);
+                document.getElementById('companySelector').innerHTML = '<p>Erro ao carregar empresas.</p>';
+            }
+        }
+
+        async function selectCompany() {
+            const companyId = document.getElementById('companySelect').value;
+            const token = localStorage.getItem("token");
+            try {
+                const resp = await fetch(`${API_URL}/companies/select`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ companyId })
+                });
+                const data = await resp.json();
+                if (data.token) {
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("companyId", data.companyId);
+                    location.reload();
+                }
+            } catch (e) {
+                console.error('Erro ao selecionar empresa:', e);
+                alert('Erro ao trocar de empresa.');
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "/shared/login.html";
+        }
+
+        window.onload = loadCompanies;
+    </script>
+</body>
+</html>

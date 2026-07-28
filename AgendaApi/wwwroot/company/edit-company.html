@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Empresa</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 500px; margin: 0 auto; }
+        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .btn-danger { background: #f44336; }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-back { background: #999; }
+        .btn-back:hover { background: #777; }
+    </style>
+</head>
+<body>
+    <h2>Editar Empresa</h2>
+    <div id="companySelector" style="margin-bottom:15px;">
+        <label for="companySelect">Empresa: </label>
+        <select id="companySelect" onchange="loadCompany()"></select>
+    </div>
+
+    <input type="text" id="companyName" placeholder="Nome da empresa">
+    <input type="text" id="category" placeholder="Categoria">
+    <button onclick="updateCompany()">Salvar Alterações</button>
+    <button onclick="deleteCompany()" class="btn-danger">Excluir Empresa</button>
+    <button onclick="window.location.href='/company/dashboard-empresa.html'" class="btn-back">Voltar</button>
+
+    <div id="message" style="margin-top:10px; padding:10px; display:none;"></div>
+
+    <script>
+        const API_URL = "http://localhost:5182";
+        let currentCompanyId = null;
+
+        function getToken() { return localStorage.getItem("token"); }
+
+        async function loadCompanies() {
+            const token = getToken();
+            if (!token) { window.location.href = "/shared/login.html"; return; }
+            try {
+                const resp = await fetch(`${API_URL}/companies`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (!resp.ok) throw new Error("Erro ao carregar empresas");
+                const data = await resp.json();
+                const select = document.getElementById('companySelect');
+                select.innerHTML = '';
+                if (data.length === 0) {
+                    select.innerHTML = '<option value="">Nenhuma empresa</option>';
+                    showMessage('Você não tem empresas. Crie uma primeiro.', 'error');
+                    return;
+                }
+                data.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    select.appendChild(opt);
+                });
+                // Selecionar a empresa ativa (ou a primeira)
+                const activeId = localStorage.getItem("companyId");
+                if (activeId && data.some(c => c.id === activeId)) {
+                    select.value = activeId;
+                } else {
+                    select.value = data[0].id;
+                }
+                loadCompany();
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar empresas: ' + e.message, 'error');
+            }
+        }
+
+        async function loadCompany() {
+            const companyId = document.getElementById('companySelect').value;
+            if (!companyId) {
+                document.getElementById('companyName').value = '';
+                document.getElementById('category').value = '';
+                return;
+            }
+            currentCompanyId = companyId;
+            const token = getToken();
+            try {
+                // Buscar a empresa via /companies (já que o endpoint GET /companies retorna todas)
+                const resp = await fetch(`${API_URL}/companies`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await resp.json();
+                const company = data.find(c => c.id === companyId);
+                if (!company) {
+                    showMessage('Empresa não encontrada.', 'error');
+                    return;
+                }
+                document.getElementById('companyName').value = company.name || '';
+                document.getElementById('category').value = company.category || '';
+                showMessage('', '');
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar empresa: ' + e.message, 'error');
+            }
+        }
+
+        async function updateCompany() {
+            const name = document.getElementById('companyName').value.trim();
+            const category = document.getElementById('category').value.trim();
+            if (!name || !category) {
+                showMessage('Preencha nome e categoria.', 'error');
+                return;
+            }
+            if (!currentCompanyId) {
+                showMessage('Selecione uma empresa.', 'error');
+                return;
+            }
+            const token = getToken();
+            try {
+                const resp = await fetch(`${API_URL}/companies/${currentCompanyId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ name, category })
+                });
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+                }
+                showMessage('Empresa atualizada com sucesso!', 'success');
+                // Recarregar a lista de empresas (para atualizar o dropdown)
+                loadCompanies();
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao atualizar: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteCompany() {
+            if (!currentCompanyId) {
+                showMessage('Selecione uma empresa.', 'error');
+                return;
+            }
+            if (!confirm(`Tem certeza que deseja excluir esta empresa permanentemente?\nTodos os serviços, funcionários e agendamentos serão removidos.`)) {
+                return;
+            }
+            const token = getToken();
+            try {
+                const resp = await fetch(`${API_URL}/companies/${currentCompanyId}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+                }
+                const data = await resp.json();
+                showMessage(data.message || 'Empresa excluída com sucesso!', 'success');
+                // Se a empresa excluída era a ativa, limpar do localStorage
+                if (localStorage.getItem("companyId") === currentCompanyId) {
+                    localStorage.removeItem("companyId");
+                }
+                // Recarregar a lista e limpar os campos
+                await loadCompanies();
+                document.getElementById('companyName').value = '';
+                document.getElementById('category').value = '';
+                currentCompanyId = null;
+                // Redirecionar para o dashboard após 2 segundos
+                setTimeout(() => {
+                    window.location.href = '/company/dashboard-empresa.html';
+                }, 2000);
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao excluir: ' + e.message, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.textContent = text;
+            el.style.display = text ? 'block' : 'none';
+            el.style.background = type === 'success' ? '#e8f5e9' : type === 'error' ? '#ffebee' : 'transparent';
+            el.style.color = type === 'success' ? '#2e7d32' : type === 'error' ? '#c62828' : 'inherit';
+            el.style.border = type === 'success' ? '1px solid #a5d6a7' : type === 'error' ? '1px solid #ef9a9a' : 'none';
+        }
+
+        window.onload = loadCompanies;
+    </script>
+</body>
+</html>

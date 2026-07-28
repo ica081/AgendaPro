@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; }
+        input, select, button { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .btn-back { background: #999; }
+        .btn-back:hover { background: #777; }
+        label { display: inline-block; margin: 5px 0; }
+        .appointment-item { border-left: 5px solid #4CAF50; padding: 10px; margin: 10px 0; background: #f4f4f4; }
+        .status-canceled { border-left-color: #f44336; }
+        .filter-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .filter-group input, .filter-group select { flex: 1; min-width: 100px; }
+        #message { margin-top: 10px; padding: 10px; border-radius: 4px; display: none; }
+        #message.success { display: block; background: #e8f5e9; color: #2e7d32; }
+        #message.error { display: block; background: #ffebee; color: #c62828; }
+        .pref-group { background: #f9f9f9; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+        .pref-group label { display: block; margin: 5px 0; }
+        .pref-group select { width: auto; }
+    </style>
+</head>
+<body>
+    <h2>Meu Perfil</h2>
+
+    <div id="message"></div>
+
+    <div>
+        <label>Email:</label>
+        <input type="email" id="email" disabled>
+    </div>
+    <div>
+        <label>Nome:</label>
+        <input type="text" id="name" placeholder="Seu nome">
+    </div>
+    <div>
+        <label>Telefone:</label>
+        <input type="text" id="phone" placeholder="(11) 99999-9999">
+    </div>
+
+    <div class="pref-group">
+        <h4>Preferências</h4>
+        <label>
+            <input type="checkbox" id="pref-notificacoes">
+            Receber notificações por e-mail
+        </label>
+        <label>
+            <input type="checkbox" id="pref-whatsapp">
+            Receber lembretes por WhatsApp
+        </label>
+        <label>
+            Horário preferido:
+            <select id="pref-horario">
+                <option value="">Indiferente</option>
+                <option value="manha">Manhã</option>
+                <option value="tarde">Tarde</option>
+                <option value="noite">Noite</option>
+            </select>
+        </label>
+        <label>
+            Dia preferido:
+            <select id="pref-dia">
+                <option value="">Indiferente</option>
+                <option value="segunda">Segunda</option>
+                <option value="terca">Terça</option>
+                <option value="quarta">Quarta</option>
+                <option value="quinta">Quinta</option>
+                <option value="sexta">Sexta</option>
+                <option value="sabado">Sábado</option>
+            </select>
+        </label>
+    </div>
+
+    <button onclick="saveProfile()">Salvar Perfil</button>
+    <button onclick="window.location.href='dashboard-cliente.html'" class="btn-back">Voltar</button>
+
+    <hr>
+
+    <h3>Histórico de Agendamentos</h3>
+    <div class="filter-group">
+        <select id="filterStatus">
+            <option value="">Todos</option>
+            <option value="Active">Ativos</option>
+            <option value="Canceled">Cancelados</option>
+        </select>
+        <input type="date" id="filterStart" placeholder="Data inicial">
+        <input type="date" id="filterEnd" placeholder="Data final">
+        <button onclick="loadHistory()">Filtrar</button>
+    </div>
+    <div id="historyContainer"></div>
+
+    <script>
+        const API_URL = "http://localhost:5182";
+
+        function getToken() {
+            return localStorage.getItem("token");
+        }
+
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.textContent = text;
+            el.className = type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        async function loadProfile() {
+            const token = getToken();
+            if (!token) { window.location.href = "/shared/login.html"; return; }
+            try {
+                const resp = await fetch(`${API_URL}/client/profile`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (!resp.ok) throw new Error("Erro ao carregar perfil");
+                const data = await resp.json();
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('name').value = data.name || '';
+                document.getElementById('phone').value = data.phone || '';
+
+                const prefs = data.preferences || {};
+                document.getElementById('pref-notificacoes').checked = !!prefs.notificacoes;
+                document.getElementById('pref-whatsapp').checked = !!prefs.whatsapp;
+                document.getElementById('pref-horario').value = prefs.horario || '';
+                document.getElementById('pref-dia').value = prefs.dia || '';
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar perfil: ' + e.message, 'error');
+            }
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            const preferences = {
+                notificacoes: document.getElementById('pref-notificacoes').checked,
+                whatsapp: document.getElementById('pref-whatsapp').checked,
+                horario: document.getElementById('pref-horario').value,
+                dia: document.getElementById('pref-dia').value
+            };
+
+            // Remove opções vazias
+            if (!preferences.horario) delete preferences.horario;
+            if (!preferences.dia) delete preferences.dia;
+
+            const token = getToken();
+            try {
+                const resp = await fetch(`${API_URL}/client/profile`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ name, phone, preferences })
+                });
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+                }
+                showMessage('Perfil atualizado com sucesso!', 'success');
+                loadProfile();
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao salvar: ' + e.message, 'error');
+            }
+        }
+
+        async function loadHistory() {
+            const token = getToken();
+            if (!token) return;
+
+            const status = document.getElementById('filterStatus').value;
+            const start = document.getElementById('filterStart').value;
+            const end = document.getElementById('filterEnd').value;
+
+            let url = `${API_URL}/client/history?`;
+            if (status) url += `status=${status}&`;
+            if (start) url += `startDate=${start}&`;
+            if (end) url += `endDate=${end}&`;
+
+            try {
+                const resp = await fetch(url, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (!resp.ok) throw new Error("Erro ao carregar histórico");
+                const data = await resp.json();
+                const container = document.getElementById('historyContainer');
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML = '<p>Nenhum agendamento encontrado.</p>';
+                    return;
+                }
+                data.forEach(a => {
+                    const div = document.createElement('div');
+                    div.className = `appointment-item ${a.status === 'Canceled' ? 'status-canceled' : ''}`;
+                    div.innerHTML = `
+                        <strong>${new Date(a.startTime).toLocaleString()}</strong><br>
+                        Serviço: ${a.serviceName}<br>
+                        Funcionário: ${a.employeeName}<br>
+                        Empresa: ${a.companyName}<br>
+                        Status: ${a.status}
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar histórico: ' + e.message, 'error');
+            }
+        }
+
+        window.onload = function() {
+            loadProfile();
+            loadHistory();
+        };
+    </script>
+</body>
+</html>

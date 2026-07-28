@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Minha Agenda</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .appointment { border-left: 5px solid #4CAF50; padding: 10px; margin: 10px 0; background: #f4f4f4; }
+        button { padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-danger { background: #f44336; }
+        .btn-danger:hover { background: #d32f2f; }
+    </style>
+</head>
+<body>
+    <h2>Minha Agenda</h2>
+    <button onclick="window.location.href='agendar.html'">Novo Agendamento</button>
+    <button onclick="window.location.href='../shared/weekview.html'">Agenda Semanal</button>
+    <button onclick="window.location.href='profile.html'">Meu Perfil</button>
+    <button onclick="logout()">Sair</button>
+
+    <div id="appointments"></div>
+
+    <script>
+        const API_URL = "http://localhost:5182";
+        function getToken() { return localStorage.getItem("token"); }
+
+        const userType = localStorage.getItem("userType");
+        if (userType !== "Client") {
+            window.location.href = "../shared/login.html";
+        }
+
+        async function loadMyAppointments() {
+            const token = getToken();
+            if (!token) { window.location.href = "../shared/login.html"; return; }
+            try {
+                const resp = await fetch(`${API_URL}/client/appointments`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+                }
+                const data = await resp.json();
+                const container = document.getElementById('appointments');
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML = '<p>Você não tem agendamentos ativos.</p>';
+                    return;
+                }
+                data.forEach(a => {
+                    const div = document.createElement('div');
+                    div.className = 'appointment';
+                    div.innerHTML = `
+                        <strong>${new Date(a.startTime).toLocaleString()}</strong><br>
+                        Serviço: ${a.serviceName}<br>
+                        Funcionário: ${a.employeeName}<br>
+                        Empresa: ${a.companyName}<br>
+                        Status: ${a.status}
+                        <button class="btn-danger" onclick="cancelAppointment('${a.id}')">Cancelar</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao carregar agendamentos: ' + e.message);
+            }
+        }
+
+        async function cancelAppointment(id) {
+            if (!confirm("Cancelar este agendamento?")) return;
+            const token = getToken();
+            try {
+                const resp = await fetch(`${API_URL}/appointments/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+                }
+                alert("Agendamento cancelado com sucesso!");
+                loadMyAppointments();
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao cancelar: ' + e.message);
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "../shared/login.html";
+        }
+
+        window.onload = loadMyAppointments;
+    </script>
+</body>
+</html>

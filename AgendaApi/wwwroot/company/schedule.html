@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Agenda</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h2, h3 { color: #333; }
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .controls label { font-weight: bold; }
+        .controls input, .controls select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+        .controls button { padding: 6px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .controls button:hover { background: #45a049; }
+
+        #time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .time-slot {
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            transition: 0.2s;
+        }
+        .time-slot:hover:not(.occupied) {
+            background: #c8e6c9;
+            transform: scale(1.02);
+        }
+        .time-slot.occupied {
+            background: #ffcdd2;
+            border-color: #ef9a9a;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .time-slot.selected {
+            background: #2196F3;
+            color: white;
+            border-color: #1976D2;
+        }
+
+        #form-container {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        #form-container input, #form-container select {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+        #form-container button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .event {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 5px solid #4CAF50;
+            background: #f4f4f4;
+            flex-wrap: wrap;
+        }
+        .event button {
+            padding: 5px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-edit { background: #2196F3; color: white; }
+        .btn-cancel { background: #f44336; color: white; }
+
+        #edit-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        #edit-modal > div {
+            background: white;
+            padding: 20px;
+            max-width: 500px;
+            width: 90%;
+            border-radius: 8px;
+        }
+        #edit-modal input, #edit-modal select {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+        #edit-modal button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .btn-save { background: #4CAF50; color: white; }
+        .btn-close { background: #999; color: white; }
+    </style>
+</head>
+<body>
+    <h2>Agenda</h2>
+
+    <div class="controls">
+        <label>Data:</label>
+        <input type="date" id="selectedDate">
+        <button onclick="loadDay()">Carregar</button>
+        <button onclick="window.location.href='dashboard-empresa.html'">Voltar</button>
+    </div>
+
+    <h3>Horários disponíveis</h3>
+    <div id="time-grid"></div>
+
+    <div id="form-container">
+        <h3>Novo Agendamento</h3>
+        <select id="services"></select><br><br>
+        <select id="employees"></select><br><br>
+        <input id="clientName" placeholder="Nome do cliente"><br><br>
+        <input id="clientPhone" placeholder="Telefone"><br><br>
+        <input type="hidden" id="selectedTime">
+        <button onclick="createSchedule()">Agendar</button>
+        <button onclick="cancelForm()" style="background:#999;">Cancelar</button>
+    </div>
+
+    <hr>
+
+    <h3>Agendamentos do dia</h3>
+    <div id="calendar"></div>
+
+    <!-- Modal de edição -->
+    <div id="edit-modal">
+        <div>
+            <h3 id="edit-title">Editar Agendamento</h3>
+            <input type="hidden" id="edit-id">
+            <select id="edit-services"></select><br><br>
+            <select id="edit-employees"></select><br><br>
+            <input id="edit-clientName" placeholder="Cliente"><br><br>
+            <input id="edit-clientPhone" placeholder="Telefone"><br><br>
+            <input type="datetime-local" id="edit-startTime"><br><br>
+            <button class="btn-save" onclick="updateSchedule()">Salvar</button>
+            <button class="btn-close" onclick="closeEditModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <script src="/js/schedule.js"></script>
+</body>
+</html>

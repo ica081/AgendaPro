@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Agendar Horário</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+        .slot { padding: 8px; border: 1px solid #ccc; text-align: center; cursor: pointer; background: #e8f5e9; border-radius: 4px; transition: 0.2s; }
+        .slot.occupied { background: #ffcdd2; cursor: not-allowed; opacity: 0.6; }
+        .slot.selected { background: #4CAF50; color: white; border-color: #2e7d32; }
+        .form-group { margin: 10px 0; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #45a049; }
+        #message { margin: 10px 0; padding: 10px; border-radius: 4px; display: none; }
+        #message.error { display: block; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        #message.success { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    </style>
+</head>
+<body>
+    <h2>Agendar Horário</h2>
+    <div id="message"></div>
+
+    <div class="form-group">
+        <label>Empresa:</label>
+        <select id="companySelect" onchange="onCompanyChange()"></select>
+    </div>
+
+    <div class="form-group">
+        <label>Data:</label>
+        <input type="date" id="date" onchange="loadSlots()">
+    </div>
+
+    <div class="form-group">
+        <label>Serviço:</label>
+        <select id="service"></select>
+    </div>
+
+    <div class="form-group">
+        <label>Funcionário:</label>
+        <select id="employee" onchange="loadSlots()"></select>
+    </div>
+
+    <div class="form-group">
+        <label>Horários disponíveis:</label>
+        <div id="slot-container" class="slot-grid"></div>
+        <p id="slot-message" style="color: #666; display: none;">Nenhum horário disponível para esta data.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Nome:</label>
+        <input type="text" id="clientName" placeholder="Seu nome">
+    </div>
+
+    <div class="form-group">
+        <label>Telefone:</label>
+        <input type="text" id="clientPhone" placeholder="(11) 99999-9999">
+    </div>
+
+    <button onclick="createBooking()">Agendar</button>
+    <button onclick="window.location.href='dashboard-cliente.html'" style="background:#999; margin-left:10px;">Voltar</button>
+
+    <script>
+        const API_URL = "http://localhost:5182";
+        let COMPANY_ID = null;
+        let selectedSlot = null;
+        let allAppointments = [];
+
+        function getToken() {
+            return localStorage.getItem("token");
+        }
+
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.textContent = text;
+            el.className = type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        async function loadCompanies() {
+            try {
+                const resp = await fetch(`${API_URL}/public/companies`);
+                if (!resp.ok) throw new Error('Erro ao buscar empresas');
+                const data = await resp.json();
+                const select = document.getElementById('companySelect');
+                select.innerHTML = '';
+                if (data.length === 0) {
+                    select.innerHTML = '<option value="">Nenhuma empresa disponível</option>';
+                    return;
+                }
+                data.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    select.appendChild(opt);
+                });
+                if (data.length > 0) {
+                    select.value = data[0].id;
+                    COMPANY_ID = data[0].id;
+                    onCompanyChange();
+                }
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar empresas: ' + e.message, 'error');
+            }
+        }
+
+        function onCompanyChange() {
+            const select = document.getElementById('companySelect');
+            COMPANY_ID = select.value;
+            if (COMPANY_ID) {
+                document.getElementById('date').value = new Date().toISOString().split('T')[0];
+                loadServices();
+                loadEmployees();
+                loadSlots();
+            }
+        }
+
+        async function loadServices() {
+            if (!COMPANY_ID) return;
+            try {
+                const resp = await fetch(`${API_URL}/public/services?companyId=${COMPANY_ID}`);
+                if (!resp.ok) throw new Error('Erro ao carregar serviços');
+                const data = await resp.json();
+                const select = document.getElementById('service');
+                select.innerHTML = '';
+                if (data.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum serviço disponível</option>';
+                    return;
+                }
+                data.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = `${s.name} (${s.durationMinutes} min)`;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar serviços: ' + e.message, 'error');
+            }
+        }
+
+        async function loadEmployees() {
+            if (!COMPANY_ID) return;
+            try {
+                const resp = await fetch(`${API_URL}/public/employees?companyId=${COMPANY_ID}`);
+                if (!resp.ok) throw new Error('Erro ao carregar funcionários');
+                const data = await resp.json();
+                const select = document.getElementById('employee');
+                select.innerHTML = '';
+                if (data.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum funcionário disponível</option>';
+                    return;
+                }
+                data.forEach(e => {
+                    const opt = document.createElement('option');
+                    opt.value = e.id;
+                    opt.textContent = e.name;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar funcionários: ' + e.message, 'error');
+            }
+        }
+
+        async function loadSlots() {
+            const date = document.getElementById('date').value;
+            const employeeId = document.getElementById('employee').value;
+            if (!date || !COMPANY_ID || !employeeId) {
+                document.getElementById('slot-container').innerHTML = '';
+                document.getElementById('slot-message').style.display = 'block';
+                return;
+            }
+
+            try {
+                const slotsResp = await fetch(`${API_URL}/public/slots?companyId=${COMPANY_ID}&date=${date}`);
+                if (!slotsResp.ok) {
+                    const errorText = await slotsResp.text();
+                    throw new Error(`Erro ${slotsResp.status}: ${errorText}`);
+                }
+                const slots = await slotsResp.json();
+                const container = document.getElementById('slot-container');
+                container.innerHTML = '';
+                const msgEl = document.getElementById('slot-message');
+
+                if (!Array.isArray(slots) || slots.length === 0) {
+                    msgEl.style.display = 'block';
+                    msgEl.textContent = 'Nenhum horário disponível para esta data.';
+                    return;
+                }
+                msgEl.style.display = 'none';
+
+                const token = getToken();
+                if (token) {
+                    const appResp = await fetch(`${API_URL}/companies/${COMPANY_ID}/schedules`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (appResp.ok) {
+                        const allData = await appResp.json();
+                        allAppointments = allData.filter(a => {
+                            const appDate = a.startTime ? a.startTime.split('T')[0] : '';
+                            return appDate === date && a.employeeId === employeeId;
+                        });
+                    } else {
+                        allAppointments = [];
+                    }
+                } else {
+                    allAppointments = [];
+                }
+
+                slots.forEach(slot => {
+                    const isOccupied = allAppointments.some(a => {
+                        const start = new Date(a.startTime);
+                        const slotDate = new Date(date + 'T' + slot);
+                        return start.getHours() === slotDate.getHours() && start.getMinutes() === slotDate.getMinutes();
+                    });
+
+                    const div = document.createElement('div');
+                    div.className = `slot ${isOccupied ? 'occupied' : ''}`;
+                    div.textContent = slot;
+                    div.dataset.time = slot;
+                    if (!isOccupied) {
+                        div.onclick = () => selectSlot(div, slot);
+                    }
+                    container.appendChild(div);
+                });
+
+                selectedSlot = null;
+                document.querySelectorAll('.slot.selected').forEach(el => el.classList.remove('selected'));
+
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao carregar horários: ' + e.message, 'error');
+                document.getElementById('slot-container').innerHTML = '';
+                document.getElementById('slot-message').style.display = 'block';
+            }
+        }
+
+        function selectSlot(element, slot) {
+            document.querySelectorAll('.slot').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedSlot = slot;
+        }
+
+        async function createBooking() {
+            const serviceId = document.getElementById('service').value;
+            const employeeId = document.getElementById('employee').value;
+            const clientName = document.getElementById('clientName').value.trim();
+            const clientPhone = document.getElementById('clientPhone').value.trim();
+            const date = document.getElementById('date').value;
+
+            if (!serviceId || !employeeId || !clientName || !clientPhone || !selectedSlot || !date) {
+                showMessage('Preencha todos os campos e selecione um horário.', 'error');
+                return;
+            }
+
+            if (!COMPANY_ID) {
+                showMessage('Selecione uma empresa.', 'error');
+                return;
+            }
+
+            const startDateTime = new Date(date + 'T' + selectedSlot);
+            const year = startDateTime.getFullYear();
+            const month = String(startDateTime.getMonth() + 1).padStart(2, '0');
+            const day = String(startDateTime.getDate()).padStart(2, '0');
+            const hours = String(startDateTime.getHours()).padStart(2, '0');
+            const minutes = String(startDateTime.getMinutes()).padStart(2, '0');
+            const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+
+            const body = {
+                serviceId,
+                employeeId,
+                clientName,
+                clientPhone,
+                startTime: localDateTime
+            };
+
+            // ===== ESCOLHER O ENDPOINT =====
+            const token = getToken();
+            let url = `${API_URL}/public/schedules?companyId=${COMPANY_ID}`;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (token) {
+                // Se houver token, usar endpoint autenticado que associa ao cliente
+                url = `${API_URL}/client/schedules/${COMPANY_ID}`;
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+                }
+
+                showMessage('Agendamento realizado com sucesso!', 'success');
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientPhone').value = '';
+                document.querySelectorAll('.slot').forEach(el => el.classList.remove('selected'));
+                selectedSlot = null;
+                loadSlots();
+            } catch (e) {
+                console.error(e);
+                showMessage('Erro ao agendar: ' + e.message, 'error');
+            }
+        }
+
+        window.onload = loadCompanies;
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Agenda Semanal</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+        .hour-cell { width: 60px; background: #f9f9f9; font-weight: bold; }
+        .appointment { 
+            background: #4CAF50; 
+            color: white; 
+            padding: 4px 6px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            display: inline-block;
+            max-width: 100%;
+            word-break: break-word;
+        }
+        .company-selector { margin-bottom: 20px; }
+        .company-selector select { padding: 6px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h2>Agenda Semanal</h2>
+
+    <div id="companySelector" class="company-selector" style="display:none;">
+        <label>Empresa: <select id="companySelect" onchange="onCompanyChange()"></select></label>
+    </div>
+
+    <button onclick="loadWeek()">Carregar</button>
+    <div id="week-container"></div>
+
+    <button onclick="goBack()">Voltar</button>
+
+    <script>
+        
+        
+
+        function goBack() {
+            const userType = localStorage.getItem("userType");
+            if (userType === "Company") {
+                window.location.href = "/company/dashboard-empresa.html";
+            } else if (userType === "Client") {
+                window.location.href = "/client/dashboard-cliente.html";
+            } else {
+                window.location.href = "/shared/login.html";
+            }
+        }
+
+        async function loadCompanies() {
+            try {
+                const resp = await fetch(`${API_URL}/public/companies`);
+                const companies = await resp.json();
+                const select = document.getElementById('companySelect');
+                select.innerHTML = '';
+                if (companies.length === 0) {
+                    select.innerHTML = '<option value="">Nenhuma empresa disponível</option>';
+                    return;
+                }
+                companies.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    select.appendChild(opt);
+                });
+                window.selectedCompanyId = companies[0].id;
+                loadWeek();
+            } catch (e) {
+                console.error('Erro ao carregar empresas:', e);
+                alert('Erro ao carregar empresas.');
+            }
+        }
+
+        function onCompanyChange() {
+            const select = document.getElementById('companySelect');
+            if (select.value) {
+                window.selectedCompanyId = select.value;
+                loadWeek();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const userType = localStorage.getItem("userType");
+            const selector = document.getElementById('companySelector');
+
+            if (userType === "Client") {
+                selector.style.display = 'block';
+                loadCompanies();
+            } else {
+                selector.style.display = 'none';
+                const companyId = localStorage.getItem("companyId");
+                if (!companyId) {
+                    alert("Você precisa criar uma empresa primeiro.");
+                    window.location.href = "/company/companies.html";
+                    return;
+                }
+                window.selectedCompanyId = null;
+                loadWeek();
+            }
+        });
+    </script>
+
+    <!-- Carrega o weekview.js (não tem API_URL) -->
+    <script src="/js/weekview.js?v=4"></script>
+</body>
+</html>

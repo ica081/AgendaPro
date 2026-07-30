@@ -18,91 +18,34 @@
             max-width: 100%;
             word-break: break-word;
         }
-        .company-selector { margin-bottom: 20px; }
-        .company-selector select { padding: 6px; font-size: 14px; }
     </style>
 </head>
 <body>
     <h2>Agenda Semanal</h2>
 
-    <div id="companySelector" class="company-selector" style="display:none;">
-        <label>Empresa: <select id="companySelect" onchange="onCompanyChange()"></select></label>
-    </div>
-
     <button onclick="loadWeek()">Carregar</button>
     <div id="week-container"></div>
 
-    <button onclick="goBack()">Voltar</button>
+    <button onclick="window.location.href='/company/dashboard-empresa.html'">Voltar</button>
 
     <script>
-        
-        
+        // Removido: lógica de cliente e seletor de empresa
+        // Agora só empresa, usa localStorage.getItem("companyId")
+        // O weekview.js já faz isso, então nenhum código extra necessário.
 
-        function goBack() {
-            const userType = localStorage.getItem("userType");
-            if (userType === "Company") {
-                window.location.href = "/company/dashboard-empresa.html";
-            } else if (userType === "Client") {
-                window.location.href = "/client/dashboard-cliente.html";
-            } else {
-                window.location.href = "/shared/login.html";
-            }
-        }
-
-        async function loadCompanies() {
-            try {
-                const resp = await fetch(`${API_URL}/public/companies`);
-                const companies = await resp.json();
-                const select = document.getElementById('companySelect');
-                select.innerHTML = '';
-                if (companies.length === 0) {
-                    select.innerHTML = '<option value="">Nenhuma empresa disponível</option>';
-                    return;
-                }
-                companies.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name;
-                    select.appendChild(opt);
-                });
-                window.selectedCompanyId = companies[0].id;
-                loadWeek();
-            } catch (e) {
-                console.error('Erro ao carregar empresas:', e);
-                alert('Erro ao carregar empresas.');
-            }
-        }
-
-        function onCompanyChange() {
-            const select = document.getElementById('companySelect');
-            if (select.value) {
-                window.selectedCompanyId = select.value;
-                loadWeek();
-            }
-        }
-
+        // 🔥 Apenas carrega a semana diretamente
         document.addEventListener('DOMContentLoaded', function() {
-            const userType = localStorage.getItem("userType");
-            const selector = document.getElementById('companySelector');
-
-            if (userType === "Client") {
-                selector.style.display = 'block';
-                loadCompanies();
-            } else {
-                selector.style.display = 'none';
-                const companyId = localStorage.getItem("companyId");
-                if (!companyId) {
-                    alert("Você precisa criar uma empresa primeiro.");
-                    window.location.href = "/company/companies.html";
-                    return;
-                }
-                window.selectedCompanyId = null;
-                loadWeek();
+            const companyId = localStorage.getItem("companyId");
+            if (!companyId) {
+                alert("Você precisa criar uma empresa primeiro.");
+                window.location.href = "/company/companies.html";
+                return;
             }
+            loadWeek();
         });
     </script>
 
-    <!-- Carrega o weekview.js (não tem API_URL) -->
+    <!-- Carrega o weekview.js -->
     <script src="/js/weekview.js?v=4"></script>
 </body>
 </html>

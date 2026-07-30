@@ -3,7 +3,8 @@ const API_URL = "http://localhost:5182";
 async function register() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
-    const userType = document.querySelector('input[name="userType"]:checked').value;
+    // Agora sempre será "Company" (fixo, pois clientes não se cadastram mais)
+    const userType = "Company";
 
     const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
@@ -46,9 +47,6 @@ async function login() {
     localStorage.setItem("companyId", data.companyId || "");
     localStorage.setItem("userType", data.userType);
 
-    if (data.userType === "Company") {
-        window.location.href = "/company/dashboard-empresa.html";
-    } else {
-        window.location.href = "/client/dashboard-cliente.html";
-    }
+    // 🔥 Sempre redirecionar para o dashboard da empresa
+    window.location.href = "/company/dashboard-empresa.html";
 }

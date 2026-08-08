@@ -965,58 +965,151 @@ app.MapGet("/public/slots", async (Guid companyId, string date, AppDbContext db)
     return Results.Ok(slots.Select(s => s.ToString("HH:mm")));
 });
 
-app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db) =>
+// =======================
+// ENDPOINT PÚBLICO PARA HORÁRIOS OCUPADOS (NOVO)
+// =======================
+app.MapGet("/public/occupied-slots", async (Guid companyId, string date, Guid employeeId, AppDbContext db) =>
+{
+    if (!DateTime.TryParse(date, out var day))
+        return Results.BadRequest("Data inválida.");
+
+    var occupied = await db.Appointments
+        .Where(a => a.CompanyId == companyId &&
+                    a.EmployeeId == employeeId &&
+                    a.Status == "Active" &&
+                    a.StartTime.Date == day.Date)
+        .Select(a => a.StartTime.ToString("HH:mm"))
+        .ToListAsync();
+
+    return Results.Ok(occupied);
+});
+
+// =======================
+// ENDPOINT PÚBLICO PARA SLOTS MENSAIS
+// =======================
+app.MapGet("/public/monthly-slots", async (Guid companyId, int year, int month, AppDbContext db) =>
 {
     var company = await db.Companies.FindAsync(companyId);
-    if (company == null) return Results.BadRequest("Empresa não encontrada.");
+    if (company == null) return Results.NotFound();
 
-    var service = await db.Services.FirstOrDefaultAsync(s => s.Id == request.ServiceId && s.CompanyId == companyId);
-    if (service == null) return Results.BadRequest("Serviço inválido.");
+    var startDate = new DateTime(year, month, 1);
+    var endDate = startDate.AddMonths(1).AddDays(-1);
 
-    var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId && e.CompanyId == companyId);
-    if (employee == null) return Results.BadRequest("Funcionário inválido.");
+    var appointments = await db.Appointments
+        .Where(a => a.CompanyId == companyId && a.Status == "Active")
+        .ToListAsync();
 
-    DateTime startTime = request.StartTime;
-    if (startTime.Kind == DateTimeKind.Utc)
-        startTime = startTime.ToLocalTime();
+    var result = new Dictionary<string, List<string>>();
 
-    var endTime = startTime.AddMinutes(service.DurationMinutes);
-
-    var slots = GenerateSlots(company, startTime);
-    if (slots.Count == 0) return Results.BadRequest("Empresa fechada neste dia.");
-    if (!slots.Any(s => s == startTime))
-        return Results.BadRequest("Horário não disponível.");
-
-    var validationError = await ValidateClientAppointments(db, request.ClientPhone, companyId, null, startTime);
-    if (validationError != null)
-        return Results.BadRequest(validationError);
-
-    var hasConflict = await db.Appointments.AnyAsync(a =>
-        a.CompanyId == companyId &&
-        a.EmployeeId == request.EmployeeId &&
-        a.Status != "Canceled" &&
-        a.StartTime < endTime &&
-        a.EndTime > startTime
-    );
-    if (hasConflict)
-        return Results.BadRequest("Este funcionário já tem um agendamento neste horário.");
-
-    var appointment = new Appointment
+    for (var date = startDate; date <= endDate; date = date.AddDays(1))
     {
-        CompanyId = companyId,
-        ServiceId = request.ServiceId,
-        EmployeeId = request.EmployeeId,
-        ClientName = request.ClientName,
-        ClientPhone = request.ClientPhone,
-        StartTime = startTime,
-        EndTime = endTime,
-        Status = "Active"
-        // Não associa ClientUserId (agendamento anônimo)
-    };
+        var slots = GenerateSlots(company, date);
+        if (slots.Count == 0) continue;
 
-    db.Appointments.Add(appointment);
-    await db.SaveChangesAsync();
-    return Results.Ok(appointment);
+        var dateStr = date.ToString("yyyy-MM-dd");
+        var occupied = appointments
+            .Where(a => a.StartTime.Date == date.Date)
+            .Select(a => a.StartTime.ToString("HH:mm"))
+            .ToList();
+
+        var available = slots
+            .Select(s => s.ToString("HH:mm"))
+            .Except(occupied)
+            .ToList();
+
+        if (available.Any())
+            result[dateStr] = available;
+    }
+
+    return Results.Ok(result);
+});
+
+// =======================
+// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (CORRIGIDO)
+// =======================
+app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db) =>
+{
+    try
+    {
+        // 1. Validar empresa
+        var company = await db.Companies.FindAsync(companyId);
+        if (company == null)
+            return Results.BadRequest("Empresa não encontrada.");
+
+        // 2. Validar serviço
+        var service = await db.Services.FirstOrDefaultAsync(s => s.Id == request.ServiceId && s.CompanyId == companyId);
+        if (service == null)
+            return Results.BadRequest("Serviço inválido.");
+
+        // 3. Validar funcionário
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId && e.CompanyId == companyId);
+        if (employee == null)
+            return Results.BadRequest("Funcionário inválido.");
+
+        // 4. Converter data/hora para local
+        DateTime startTime = request.StartTime;
+        if (startTime.Kind == DateTimeKind.Utc)
+            startTime = startTime.ToLocalTime();
+
+        var endTime = startTime.AddMinutes(service.DurationMinutes);
+
+        // 5. Verificar slots disponíveis
+        var slots = GenerateSlots(company, startTime.Date);
+        if (slots.Count == 0)
+            return Results.BadRequest("Empresa fechada neste dia.");
+        if (!slots.Any(s => s == startTime))
+            return Results.BadRequest("Horário não disponível para agendamento.");
+
+        // 6. Validar regras de cliente (por telefone)
+        var validationError = await ValidateClientAppointments(db, request.ClientPhone, companyId, null, startTime);
+        if (validationError != null)
+            return Results.BadRequest(validationError);
+
+        // 7. Verificar conflito com outros agendamentos
+        var hasConflict = await db.Appointments.AnyAsync(a =>
+            a.CompanyId == companyId &&
+            a.EmployeeId == request.EmployeeId &&
+            a.Status == "Active" &&
+            a.StartTime < endTime &&
+            a.EndTime > startTime
+        );
+        if (hasConflict)
+            return Results.BadRequest("Este funcionário já tem um agendamento neste horário.");
+
+        // 8. Criar o agendamento (sem ClientUserId)
+        var appointment = new Appointment
+        {
+            CompanyId = companyId,
+            ServiceId = request.ServiceId,
+            EmployeeId = request.EmployeeId,
+            ClientName = string.IsNullOrWhiteSpace(request.ClientName) ? "Cliente" : request.ClientName,
+            ClientPhone = string.IsNullOrWhiteSpace(request.ClientPhone) ? "" : request.ClientPhone,
+            StartTime = startTime,
+            EndTime = endTime,
+            Status = "Active",
+            ClientUserId = null
+        };
+
+        db.Appointments.Add(appointment);
+        await db.SaveChangesAsync();
+
+        // 9. Retornar sucesso
+        return Results.Ok(new
+        {
+            appointment.Id,
+            appointment.ClientName,
+            appointment.StartTime,
+            appointment.EndTime,
+            ServiceName = service.Name,
+            EmployeeName = employee.Name
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Erro ao criar agendamento: {ex.Message}");
+        Console.WriteLine(ex.StackTrace);
+        return Results.BadRequest($"Erro interno: {ex.Message}");
+    }
 });
 
 // =======================

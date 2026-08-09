@@ -1,5 +1,8 @@
 const API_URL = "http://localhost:5182";
 
+// ====== VARIÁVEL GLOBAL PARA A SEMANA ATUAL ======
+let currentWeekStart = null;
+
 function getToken() {
     return localStorage.getItem("token");
 }
@@ -11,7 +14,65 @@ function getCompanyId() {
     return localStorage.getItem("companyId");
 }
 
+// ====== FUNÇÕES DE NAVEGAÇÃO SEMANAL ======
+function getWeekStart(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay(); // 0 = domingo
+    d.setDate(d.getDate() - day);
+    return d;
+}
+
+function setWeekStart(date) {
+    currentWeekStart = getWeekStart(date);
+    const input = document.getElementById('weekStartDate');
+    if (input) {
+        input.value = currentWeekStart.toISOString().split('T')[0];
+    }
+    loadWeek();
+}
+
+function loadCurrentWeek() {
+    setWeekStart(new Date());
+}
+
+function previousWeek() {
+    if (!currentWeekStart) {
+        currentWeekStart = getWeekStart(new Date());
+    }
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() - 7);
+    setWeekStart(newDate);
+}
+
+function nextWeek() {
+    if (!currentWeekStart) {
+        currentWeekStart = getWeekStart(new Date());
+    }
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() + 7);
+    setWeekStart(newDate);
+}
+
+function loadWeekFromDate() {
+    const dateInput = document.getElementById('weekStartDate');
+    if (dateInput && dateInput.value) {
+        const date = new Date(dateInput.value + 'T00:00:00');
+        setWeekStart(date);
+    }
+}
+
+// ====== FUNÇÃO PRINCIPAL ======
 async function loadWeek() {
+    // Se não houver currentWeekStart, define como hoje
+    if (!currentWeekStart) {
+        currentWeekStart = getWeekStart(new Date());
+        const input = document.getElementById('weekStartDate');
+        if (input) {
+            input.value = currentWeekStart.toISOString().split('T')[0];
+        }
+    }
+
     const companyId = getCompanyId();
     const token = getToken();
 
@@ -62,14 +123,12 @@ async function loadWeek() {
     const schedule = company.workSchedule;
     const step = schedule.stepMinutes || 30;
 
-    // 🔥 Semana começa no DOMINGO
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // domingo
+    // ====== USAR currentWeekStart ======
+    const startOfWeek = new Date(currentWeekStart);
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // sábado
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-    // Buscar agendamentos da semana (parâmetros em UTC)
+    // Buscar agendamentos da semana
     const params = new URLSearchParams({
         start: startOfWeek.toISOString().split('T')[0],
         end: endOfWeek.toISOString().split('T')[0]
@@ -84,7 +143,7 @@ async function loadWeek() {
     }
     const appointments = await appRes.json();
 
-    // Mapa de agendamentos com chave local "YYYY-MM-DDTHH:mm"
+    // Mapa de agendamentos com chave local
     const appointmentMap = {};
     appointments.forEach(app => {
         const localDate = new Date(app.startTime);
@@ -104,7 +163,6 @@ async function loadWeek() {
     }
 
     let html = '<table><thead><tr><th>Horário</th>';
-    // 🔥 Dias da semana começando no DOMINGO
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     for (let i = 0; i < 7; i++) {
         const d = new Date(startOfWeek);

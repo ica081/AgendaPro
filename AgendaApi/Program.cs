@@ -7,6 +7,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using MailKit.Net.Smtp;
+using MimeKit;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +58,109 @@ if (app.Environment.IsDevelopment())
 app.UseCors("DevCors");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// =======================
+// MIDDLEWARE DE REESCRITA PARA PUBLIC-AGENDAR.HTML
+// =======================
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (path != null && path.StartsWith("/public-agendar.html/", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Request.Path = "/public-agendar.html";
+    }
+    await next();
+});
+
+// =======================
+// HELPERS - VALIDAÇÕES E EMAIL
+// =======================
+
+// 1. Valida formato do email
+bool IsValidEmail(string email)
+{
+    if (string.IsNullOrWhiteSpace(email)) return false;
+    try
+    {
+        var addr = new System.Net.Mail.MailAddress(email);
+        return addr.Address == email;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+// 2. Valida se o domínio tem registro MX (opcional)
+async Task<bool> HasValidMxRecordAsync(string email)
+{
+    var domain = email.Split('@')[1];
+    try
+    {
+        var hostEntry = await Dns.GetHostEntryAsync(domain);
+        return hostEntry.AddressList.Length > 0;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+// 3. Envio de email (com MailKit) - COM LOGS DETALHADOS
+async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
+{
+    Console.WriteLine($"[EMAIL] Iniciando envio para {toEmail}");
+
+    var smtpHost = builder.Configuration["EmailSettings:SmtpHost"] ?? "smtp.gmail.com";
+    var smtpPort = int.Parse(builder.Configuration["EmailSettings:SmtpPort"] ?? "587");
+    var smtpUser = builder.Configuration["EmailSettings:Username"] ?? "";
+    var smtpPass = builder.Configuration["EmailSettings:Password"] ?? "";
+
+    Console.WriteLine($"[EMAIL] Host={smtpHost}, Porta={smtpPort}, User={smtpUser}");
+
+    if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass))
+    {
+        Console.WriteLine("[EMAIL] ERRO: Credenciais não configuradas!");
+        throw new Exception("Credenciais de e-mail não configuradas.");
+    }
+
+    var message = new MimeMessage();
+    message.From.Add(new MailboxAddress("AgendaPro", smtpUser));
+    message.To.Add(new MailboxAddress("Cliente", toEmail));
+    message.Subject = subject;
+    message.Body = new TextPart("html") { Text = htmlBody };
+
+    using (var client = new SmtpClient())
+    {
+        Console.WriteLine("[EMAIL] Conectando ao SMTP...");
+        await client.ConnectAsync(smtpHost, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+        Console.WriteLine("[EMAIL] Conectado. Autenticando...");
+        await client.AuthenticateAsync(smtpUser, smtpPass);
+        Console.WriteLine("[EMAIL] Autenticado. Enviando mensagem...");
+        await client.SendAsync(message);
+        await client.DisconnectAsync(true);
+        Console.WriteLine("[EMAIL] Mensagem enviada com sucesso!");
+    }
+}
+
+// =======================
+// ENDPOINT DE TESTE DE EMAIL
+// =======================
+app.MapGet("/test-email", async (string? to) =>
+{
+    try
+    {
+        string testEmail = to ?? "seu-email@teste.com";
+        Console.WriteLine($"[TESTE] Enviando email de teste para {testEmail}");
+        await SendEmailAsync(testEmail, "Teste AgendaPro", "<h1>Teste</h1><p>Se você recebeu este e-mail, o SMTP está funcionando!</p>");
+        return Results.Ok($"Email enviado com sucesso para {testEmail}!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[TESTE] ERRO: {ex.Message}");
+        return Results.BadRequest($"Erro ao enviar: {ex.Message}");
+    }
+});
 
 // =======================
 // AUTH
@@ -238,7 +344,7 @@ app.MapPut("/companies/{id}", async (Guid id, UpdateCompanyRequest request, AppD
 }).RequireAuthorization();
 
 // =======================
-// HELPERS
+// HELPERS INTERNOS
 // =======================
 Guid? GetCompanyId(ClaimsPrincipal user)
 {
@@ -299,17 +405,17 @@ List<DateTime> GenerateSlots(Company company, DateTime date)
 }
 
 // =======================
-// VALIDAÇÃO DE CLIENTE (por telefone)
+// VALIDAÇÃO DE CLIENTE (AGORA POR EMAIL)
 // =======================
-async Task<string?> ValidateClientAppointments(AppDbContext db, string clientPhone, Guid companyId, Guid? excludeAppointmentId = null, DateTime? newStartTime = null)
+async Task<string?> ValidateClientAppointments(AppDbContext db, string clientEmail, Guid companyId, Guid? excludeAppointmentId = null, DateTime? newStartTime = null)
 {
-    if (string.IsNullOrWhiteSpace(clientPhone))
+    if (string.IsNullOrWhiteSpace(clientEmail))
         return null;
 
     var query = db.Appointments
         .Where(a => a.CompanyId == companyId &&
                     a.Status == "Active" &&
-                    a.ClientPhone == clientPhone);
+                    a.ClientEmail == clientEmail);
 
     if (excludeAppointmentId.HasValue)
         query = query.Where(a => a.Id != excludeAppointmentId.Value);
@@ -356,7 +462,7 @@ app.MapGet("/client/appointments", async (AppDbContext db, ClaimsPrincipal user)
         .Select(a => new {
             a.Id,
             a.ClientName,
-            a.ClientPhone,
+            a.ClientEmail,
             a.StartTime,
             a.EndTime,
             a.Status,
@@ -443,7 +549,7 @@ app.MapGet("/client/history", async (string? status, string? startDate, string? 
         {
             a.Id,
             a.ClientName,
-            a.ClientPhone,
+            a.ClientEmail,
             a.StartTime,
             a.EndTime,
             a.Status,
@@ -584,7 +690,7 @@ app.MapGet("/companies/{companyId}/schedules", async (Guid companyId, AppDbConte
         .Select(a => new {
             a.Id,
             a.ClientName,
-            a.ClientPhone,
+            a.ClientEmail,
             a.StartTime,
             a.EndTime,
             a.Status,
@@ -692,7 +798,7 @@ app.MapDelete("/companies/{id}", async (Guid id, AppDbContext db, ClaimsPrincipa
 }).RequireAuthorization();
 
 // =======================
-// APPOINTMENTS (CRIAR E EDITAR)
+// APPOINTMENTS (CRIAR E EDITAR) - ADMIN
 // =======================
 app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db, ClaimsPrincipal user) =>
 {
@@ -724,7 +830,7 @@ app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db,
     if (!slots.Any(s => s == startTime))
         return Results.BadRequest("Horário não disponível para agendamento.");
 
-    var validationError = await ValidateClientAppointments(db, request.ClientPhone, companyId.Value, null, startTime);
+    var validationError = await ValidateClientAppointments(db, request.ClientEmail, companyId.Value, null, startTime);
     if (validationError != null)
         return Results.BadRequest(validationError);
 
@@ -745,7 +851,7 @@ app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db,
         ServiceId = request.ServiceId,
         EmployeeId = request.EmployeeId,
         ClientName = request.ClientName,
-        ClientPhone = request.ClientPhone,
+        ClientEmail = request.ClientEmail,
         StartTime = startTime,
         EndTime = endTime,
         Status = "Active"
@@ -803,8 +909,8 @@ app.MapPut("/appointments/{id}", async (Guid id, UpdateAppointmentRequest reques
     if (!slots.Any(s => s == startTime))
         return Results.BadRequest("Horário não disponível para agendamento.");
 
-    var clientPhone = request.ClientPhone ?? appointment.ClientPhone;
-    var validationError = await ValidateClientAppointments(db, clientPhone, companyId.Value, id, startTime);
+    var clientEmail = request.ClientEmail ?? appointment.ClientEmail;
+    var validationError = await ValidateClientAppointments(db, clientEmail, companyId.Value, id, startTime);
     if (validationError != null)
         return Results.BadRequest(validationError);
 
@@ -820,7 +926,7 @@ app.MapPut("/appointments/{id}", async (Guid id, UpdateAppointmentRequest reques
         return Results.BadRequest("Conflito de horário com outro agendamento.");
 
     appointment.ClientName = request.ClientName ?? appointment.ClientName;
-    appointment.ClientPhone = request.ClientPhone ?? appointment.ClientPhone;
+    appointment.ClientEmail = request.ClientEmail ?? appointment.ClientEmail;
     appointment.StartTime = startTime;
     appointment.EndTime = endTime;
 
@@ -866,7 +972,7 @@ app.MapDelete("/appointments/{id}", async (Guid id, AppDbContext db, ClaimsPrinc
 }).RequireAuthorization();
 
 // =======================
-// ENDPOINT PARA CLIENTE LOGADO CRIAR AGENDAMENTO (NOVO)
+// ENDPOINT PARA CLIENTE LOGADO CRIAR AGENDAMENTO
 // =======================
 app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateScheduleRequest request, AppDbContext db, ClaimsPrincipal user) =>
 {
@@ -893,7 +999,7 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
     if (slots.Count == 0 || !slots.Any(s => s == startTime))
         return Results.BadRequest("Horário não disponível.");
 
-    var validationError = await ValidateClientAppointments(db, request.ClientPhone, companyId, null, startTime);
+    var validationError = await ValidateClientAppointments(db, request.ClientEmail, companyId, null, startTime);
     if (validationError != null)
         return Results.BadRequest(validationError);
 
@@ -913,11 +1019,11 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
         ServiceId = request.ServiceId,
         EmployeeId = request.EmployeeId,
         ClientName = request.ClientName,
-        ClientPhone = request.ClientPhone,
+        ClientEmail = request.ClientEmail,
         StartTime = startTime,
         EndTime = endTime,
         Status = "Active",
-        ClientUserId = userId // associa ao cliente logado
+        ClientUserId = userId
     };
 
     db.Appointments.Add(appointment);
@@ -926,7 +1032,7 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
 }).RequireAuthorization();
 
 // =======================
-// ENDPOINTS PÚBLICOS (sem autenticação para agendamento anônimo)
+// ENDPOINTS PÚBLICOS
 // =======================
 app.MapGet("/public/companies", async (AppDbContext db) =>
 {
@@ -965,9 +1071,6 @@ app.MapGet("/public/slots", async (Guid companyId, string date, AppDbContext db)
     return Results.Ok(slots.Select(s => s.ToString("HH:mm")));
 });
 
-// =======================
-// ENDPOINT PÚBLICO PARA HORÁRIOS OCUPADOS (NOVO)
-// =======================
 app.MapGet("/public/occupied-slots", async (Guid companyId, string date, Guid employeeId, AppDbContext db) =>
 {
     if (!DateTime.TryParse(date, out var day))
@@ -984,9 +1087,6 @@ app.MapGet("/public/occupied-slots", async (Guid companyId, string date, Guid em
     return Results.Ok(occupied);
 });
 
-// =======================
-// ENDPOINT PÚBLICO PARA SLOTS MENSAIS
-// =======================
 app.MapGet("/public/monthly-slots", async (Guid companyId, int year, int month, AppDbContext db) =>
 {
     var company = await db.Companies.FindAsync(companyId);
@@ -1025,7 +1125,7 @@ app.MapGet("/public/monthly-slots", async (Guid companyId, int year, int month, 
 });
 
 // =======================
-// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (CORRIGIDO)
+// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (COM CONFIRMAÇÃO)
 // =======================
 app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db) =>
 {
@@ -1046,26 +1146,41 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         if (employee == null)
             return Results.BadRequest("Funcionário inválido.");
 
-        // 4. Converter data/hora para local
+        // 4. Validar formato do email
+        if (!IsValidEmail(request.ClientEmail))
+            return Results.BadRequest("E-mail inválido (formato incorreto).");
+
+        // 5. Validar domínio (MX) - opcional, com fallback silencioso
+        try
+        {
+            var domainValid = await HasValidMxRecordAsync(request.ClientEmail);
+            if (!domainValid)
+            {
+                Console.WriteLine($"Domínio do e-mail {request.ClientEmail} não pôde ser verificado, continuando.");
+            }
+        }
+        catch { /* ignora falha na verificação MX */ }
+
+        // 6. Converter data/hora
         DateTime startTime = request.StartTime;
         if (startTime.Kind == DateTimeKind.Utc)
             startTime = startTime.ToLocalTime();
 
         var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-        // 5. Verificar slots disponíveis
+        // 7. Verificar slots disponíveis
         var slots = GenerateSlots(company, startTime.Date);
         if (slots.Count == 0)
             return Results.BadRequest("Empresa fechada neste dia.");
         if (!slots.Any(s => s == startTime))
             return Results.BadRequest("Horário não disponível para agendamento.");
 
-        // 6. Validar regras de cliente (por telefone)
-        var validationError = await ValidateClientAppointments(db, request.ClientPhone, companyId, null, startTime);
+        // 8. Validar regras de cliente (por email)
+        var validationError = await ValidateClientAppointments(db, request.ClientEmail, companyId, null, startTime);
         if (validationError != null)
             return Results.BadRequest(validationError);
 
-        // 7. Verificar conflito com outros agendamentos
+        // 9. Verificar conflito com outros agendamentos
         var hasConflict = await db.Appointments.AnyAsync(a =>
             a.CompanyId == companyId &&
             a.EmployeeId == request.EmployeeId &&
@@ -1076,32 +1191,60 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         if (hasConflict)
             return Results.BadRequest("Este funcionário já tem um agendamento neste horário.");
 
-        // 8. Criar o agendamento (sem ClientUserId)
+        // 10. Associar a usuário existente (se houver)
+        var existingUser = await db.Users
+            .FirstOrDefaultAsync(u => u.Email == request.ClientEmail && u.Type == UserType.Client);
+
+        // 11. Criar agendamento com status Pending e token
         var appointment = new Appointment
         {
             CompanyId = companyId,
             ServiceId = request.ServiceId,
             EmployeeId = request.EmployeeId,
             ClientName = string.IsNullOrWhiteSpace(request.ClientName) ? "Cliente" : request.ClientName,
-            ClientPhone = string.IsNullOrWhiteSpace(request.ClientPhone) ? "" : request.ClientPhone,
+            ClientEmail = request.ClientEmail,
             StartTime = startTime,
             EndTime = endTime,
-            Status = "Active",
-            ClientUserId = null
+            Status = "Pending",
+            ClientUserId = existingUser?.Id,
+            ConfirmationToken = Guid.NewGuid().ToString(),
+            ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24)
         };
 
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync();
 
-        // 9. Retornar sucesso
+        // 12. Enviar e-mail de confirmação
+        string confirmLink = $"http://localhost:5182/confirm?token={appointment.ConfirmationToken}";
+        string emailBody = $@"
+            <h2>Confirme seu agendamento</h2>
+            <p>Olá {appointment.ClientName},</p>
+            <p>Você agendou um serviço para {startTime:dd/MM/yyyy HH:mm}.</p>
+            <p>Clique no link abaixo para confirmar:</p>
+            <a href='{confirmLink}'>Confirmar Agendamento</a>
+            <p>Este link expira em 24 horas.</p>
+            <p>Atenciosamente,<br/>AgendaPro</p>
+        ";
+
+        try
+        {
+            await SendEmailAsync(request.ClientEmail, "Confirme seu agendamento", emailBody);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao enviar email: {ex.Message}");
+            // Não falhamos a requisição, apenas logamos
+        }
+
         return Results.Ok(new
         {
             appointment.Id,
             appointment.ClientName,
+            appointment.ClientEmail,
             appointment.StartTime,
             appointment.EndTime,
-            ServiceName = service.Name,
-            EmployeeName = employee.Name
+            Status = appointment.Status,
+            Message = "Agendamento criado! Verifique seu e-mail para confirmar."
         });
     }
     catch (Exception ex)
@@ -1113,7 +1256,32 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
 });
 
 // =======================
-// SERVE FRONT-END
+// ENDPOINT DE CONFIRMAÇÃO
+// =======================
+app.MapGet("/confirm", async (string token, AppDbContext db) =>
+{
+    var appointment = await db.Appointments
+        .FirstOrDefaultAsync(a => a.ConfirmationToken == token);
+
+    if (appointment == null)
+        return Results.NotFound("Token inválido ou agendamento não encontrado.");
+
+    if (appointment.ConfirmationTokenExpiry < DateTime.UtcNow)
+        return Results.BadRequest("Token expirado. Solicite um novo agendamento.");
+
+    if (appointment.Status == "Active")
+        return Results.Ok("Agendamento já foi confirmado anteriormente.");
+
+    appointment.Status = "Active";
+    appointment.ConfirmationToken = null;
+    appointment.ConfirmationTokenExpiry = null;
+    await db.SaveChangesAsync();
+
+    return Results.Ok("Agendamento confirmado com sucesso!");
+});
+
+// =======================
+// SERVE FRONT-END (arquivos estáticos)
 // =======================
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -1159,7 +1327,7 @@ public class CreateScheduleRequest
     public Guid ServiceId { get; set; }
     public Guid EmployeeId { get; set; }
     public string ClientName { get; set; } = "";
-    public string ClientPhone { get; set; } = "";
+    public string ClientEmail { get; set; } = ""; // Antes ClientPhone
     public DateTime StartTime { get; set; }
 }
 
@@ -1175,7 +1343,7 @@ public class UpdateAppointmentRequest
     public Guid? ServiceId { get; set; }
     public Guid? EmployeeId { get; set; }
     public string? ClientName { get; set; }
-    public string? ClientPhone { get; set; }
+    public string? ClientEmail { get; set; } // Antes ClientPhone
     public DateTime? StartTime { get; set; }
 }
 

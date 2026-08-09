@@ -50,9 +50,8 @@
         }
 
         function generatePublicLink() {
-            const companyId = localStorage.getItem("companyId");
-            if (!companyId) return "";
-            // Gera link com query string
+        const companyId = localStorage.getItem("companyId");
+        if (!companyId) return "";
             return window.location.origin + "/public-agendar.html?companyId=" + companyId;
         }
 

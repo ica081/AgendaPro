@@ -8,32 +8,61 @@
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background: #f2f2f2; }
         .hour-cell { width: 60px; background: #f9f9f9; font-weight: bold; }
-        .appointment { 
-            background: #4CAF50; 
-            color: white; 
-            padding: 4px 6px; 
-            border-radius: 4px; 
-            font-size: 12px; 
+        .appointment {
+            background: #4CAF50;
+            color: white;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 12px;
             display: inline-block;
             max-width: 100%;
             word-break: break-word;
+        }
+        .week-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .week-nav button {
+            padding: 6px 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .week-nav button:hover {
+            background: #1d4ed8;
+        }
+        .week-nav input {
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .week-nav label {
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <h2>Agenda Semanal</h2>
 
-    <button onclick="loadWeek()">Carregar</button>
+    <div class="week-nav">
+        <button onclick="previousWeek()">◀ Semana anterior</button>
+        <label for="weekStartDate">Início da semana:</label>
+        <input type="date" id="weekStartDate" onchange="loadWeekFromDate()">
+        <button onclick="nextWeek()">Próxima semana ▶</button>
+        <button onclick="loadCurrentWeek()" style="background: #6b7280;">Semana atual</button>
+    </div>
+
     <div id="week-container"></div>
 
     <button onclick="window.location.href='/company/dashboard-empresa.html'">Voltar</button>
 
     <script>
-        // Removido: lógica de cliente e seletor de empresa
-        // Agora só empresa, usa localStorage.getItem("companyId")
-        // O weekview.js já faz isso, então nenhum código extra necessário.
-
-        // 🔥 Apenas carrega a semana diretamente
+        // Apenas carrega a semana diretamente
         document.addEventListener('DOMContentLoaded', function() {
             const companyId = localStorage.getItem("companyId");
             if (!companyId) {
@@ -41,11 +70,12 @@
                 window.location.href = "/company/companies.html";
                 return;
             }
-            loadWeek();
+            // Inicializa com a semana atual
+            loadCurrentWeek();
         });
     </script>
 
-    <!-- Carrega o weekview.js -->
-    <script src="/js/weekview.js?v=4"></script>
+    <!-- Carrega o weekview.js (agora com navegação) -->
+    <script src="/js/weekview.js?v=5"></script>
 </body>
 </html>

@@ -283,8 +283,8 @@
             <input type="text" id="clientName" placeholder="Ex: João Silva">
         </div>
         <div class="form-group">
-            <label for="clientPhone">Telefone</label>
-            <input type="text" id="clientPhone" placeholder="(11) 99999-9999">
+            <label for="clientEmail">E-mail</label>
+            <input type="email" id="clientEmail" placeholder="joao@email.com">
         </div>
         <button class="btn-primary" id="bookBtn" onclick="createBooking()">Agendar</button>
     </div>
@@ -296,16 +296,33 @@
 
 <script>
     const API_URL = "http://localhost:5182";
-    const path = window.location.pathname;
-    const parts = path.split('/');
-    const COMPANY_ID = parts[2]; // ex: .../public-agendar.html/123e4567...
+
+    // ====== EXTRAIR COMPANY_ID DA URL (suporta query string e path param) ======
+    function getCompanyIdFromUrl() {
+        // 1. Tenta buscar da query string (?companyId=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromQuery = urlParams.get('companyId');
+        if (fromQuery) return fromQuery;
+
+        // 2. Tenta buscar do path (/public-agendar.html/ID)
+        const path = window.location.pathname;
+        const parts = path.split('/');
+        // Ex: ["", "public-agendar.html", "ID"]
+        if (parts.length >= 3 && parts[2]) {
+            return parts[2];
+        }
+
+        return null;
+    }
+
+    const COMPANY_ID = getCompanyIdFromUrl();
 
     let currentYear, currentMonth;
     let selectedDate = null;
     let selectedSlot = null;
     let serviceList = [];
     let employeeList = [];
-    let daySlotsMap = {}; // cache de slots por data para evitar múltiplas requisições
+    let daySlotsMap = {};
 
     // ====== Utilitários ======
     function showAlert(msg, type) {
@@ -456,7 +473,6 @@
                 };
             }
 
-            // Se este dia for o selecionado, marcar como selected
             if (dateStr === selectedDate) {
                 el.classList.add('selected');
             }
@@ -468,7 +484,6 @@
     async function dayHasSlots(dateStr, serviceId, employeeId) {
         if (!serviceId || !employeeId) return false;
         try {
-            // Tentar obter do cache
             const cacheKey = `${dateStr}_${serviceId}_${employeeId}`;
             if (daySlotsMap[cacheKey] !== undefined) {
                 return daySlotsMap[cacheKey].length > 0;
@@ -494,11 +509,9 @@
             selectedElement.classList.add('selected');
         }
 
-        // Limpar seleção anterior de slot
         selectedSlot = null;
         document.getElementById('bookingForm').style.display = 'none';
 
-        // Buscar slots e ocupados
         const serviceId = document.getElementById('serviceSelect').value;
         const employeeId = document.getElementById('employeeSelect').value;
 
@@ -519,7 +532,7 @@
         container.style.display = 'block';
 
         try {
-            // 1. Buscar slots teóricos (disponíveis)
+            // 1. Buscar slots teóricos
             const slotsResp = await fetch(`${API_URL}/public/slots?companyId=${COMPANY_ID}&date=${dateStr}`);
             if (!slotsResp.ok) throw new Error('Erro ao buscar horários');
             const allSlots = await slotsResp.json();
@@ -531,7 +544,6 @@
                 occupied = await occupiedResp.json();
             }
 
-            // 3. Renderizar
             grid.innerHTML = '';
             if (allSlots.length === 0) {
                 grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#6b7280;">Nenhum horário disponível neste dia</div>';
@@ -539,7 +551,6 @@
                 return;
             }
 
-            // Guardar slots para uso posterior (createBooking)
             selectedDate = dateStr;
 
             allSlots.forEach(slot => {
@@ -575,11 +586,18 @@
         const serviceId = document.getElementById('serviceSelect').value;
         const employeeId = document.getElementById('employeeSelect').value;
         const clientName = document.getElementById('clientName').value.trim();
-        const clientPhone = document.getElementById('clientPhone').value.trim();
+        const clientEmail = document.getElementById('clientEmail').value.trim();
         const date = selectedDate;
 
-        if (!serviceId || !employeeId || !clientName || !clientPhone || !selectedSlot || !date) {
+        if (!serviceId || !employeeId || !clientName || !clientEmail || !selectedSlot || !date) {
             showAlert('Preencha todos os campos e selecione um horário.', 'error');
+            return;
+        }
+
+        // Validar formato de e-mail (básico)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(clientEmail)) {
+            showAlert('Por favor, insira um e-mail válido.', 'error');
             return;
         }
 
@@ -591,11 +609,12 @@
         const minutes = String(startDateTime.getMinutes()).padStart(2,'0');
         const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
 
+        // CORREÇÃO: usar clientEmail (não clientPhone) para compatibilidade com o backend
         const body = {
             serviceId,
             employeeId,
             clientName,
-            clientPhone,
+            clientEmail,
             startTime: localDateTime
         };
 
@@ -615,16 +634,17 @@
                 throw new Error(errorText || 'Erro ao agendar');
             }
 
-            showAlert('Agendamento realizado com sucesso!', 'success');
-            // Limpar campos
+            // Mensagem de sucesso com aviso sobre e-mail de confirmação
+            showAlert('Agendamento realizado! Verifique seu e-mail para confirmar.', 'success');
+
+            // Limpar campos e resetar
             document.getElementById('clientName').value = '';
-            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientEmail').value = '';
             document.querySelectorAll('.slot.selected').forEach(el => el.classList.remove('selected'));
             selectedSlot = null;
             document.getElementById('bookingForm').style.display = 'none';
-            // Recarregar o dia para atualizar ocupados
+            // Recarregar os slots do dia (para remover o horário ocupado) e recalendarizar
             await selectDay(date);
-            // Recarregar o calendário para atualizar indicadores de slots
             renderCalendar();
         } catch (e) {
             showAlert('Erro ao agendar: ' + e.message, 'error');
@@ -636,7 +656,6 @@
 
     // ====== Event listeners ======
     document.getElementById('serviceSelect').addEventListener('change', () => {
-        // Limpar cache e re-renderizar
         daySlotsMap = {};
         selectedDate = null;
         document.getElementById('slotsContainer').style.display = 'none';

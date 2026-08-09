@@ -41,6 +41,7 @@ async function loadServices() {
         if (!response.ok) throw new Error(`Erro ${response.status}`);
         const data = await response.json();
         const select = document.getElementById("services");
+        if (!select) return;
         select.innerHTML = "";
         if (!Array.isArray(data) || data.length === 0) {
             select.innerHTML = '<option disabled>Nenhum serviço</option>';
@@ -69,6 +70,7 @@ async function loadEmployees() {
         if (!response.ok) throw new Error(`Erro ${response.status}`);
         const data = await response.json();
         const select = document.getElementById("employees");
+        if (!select) return;
         select.innerHTML = "";
         if (!Array.isArray(data) || data.length === 0) {
             select.innerHTML = '<option disabled>Nenhum funcionário</option>';
@@ -86,7 +88,7 @@ async function loadEmployees() {
 }
 
 // =======================
-// LOAD DAY (grade de horários e agendamentos)
+// LOAD DAY
 // =======================
 async function loadDay() {
     const companyId = getCompanyId();
@@ -96,7 +98,12 @@ async function loadDay() {
         return;
     }
 
-    const date = document.getElementById("selectedDate").value;
+    const dateInput = document.getElementById("selectedDate");
+    if (!dateInput) {
+        alert("Campo de data não encontrado.");
+        return;
+    }
+    const date = dateInput.value;
     if (!date) {
         alert("Selecione uma data.");
         return;
@@ -124,6 +131,7 @@ async function loadDay() {
         const dayAppointments = allAppointments.filter(a => a.startTime && a.startTime.startsWith(date));
 
         const grid = document.getElementById("time-grid");
+        if (!grid) return;
         grid.innerHTML = "";
 
         if (slots.length === 0) {
@@ -149,6 +157,7 @@ async function loadDay() {
         }
 
         const calendar = document.getElementById("calendar");
+        if (!calendar) return;
         calendar.innerHTML = "";
         if (dayAppointments.length === 0) {
             calendar.innerHTML = "<p>Sem agendamentos para esta data.</p>";
@@ -169,8 +178,10 @@ async function loadDay() {
         }
 
         selectedTimeSlot = null;
-        document.getElementById("form-container").style.display = "none";
-        document.getElementById("selectedTime").value = "";
+        const form = document.getElementById("form-container");
+        if (form) form.style.display = "none";
+        const timeHidden = document.getElementById("selectedTime");
+        if (timeHidden) timeHidden.value = "";
 
     } catch (error) {
         console.error("Erro ao carregar dia:", error);
@@ -182,23 +193,30 @@ function selectTimeSlot(element, time) {
     document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
     element.classList.add('selected');
     selectedTimeSlot = time;
-    document.getElementById("selectedTime").value = time;
-    document.getElementById("form-container").style.display = "block";
-    document.getElementById("form-container").scrollIntoView({ behavior: 'smooth' });
+    const timeHidden = document.getElementById("selectedTime");
+    if (timeHidden) timeHidden.value = time;
+    const form = document.getElementById("form-container");
+    if (form) {
+        form.style.display = "block";
+        form.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 function cancelForm() {
-    document.getElementById("form-container").style.display = "none";
+    const form = document.getElementById("form-container");
+    if (form) form.style.display = "none";
     document.querySelectorAll('.time-slot.selected').forEach(el => el.classList.remove('selected'));
     selectedTimeSlot = null;
-    document.getElementById("selectedTime").value = "";
+    const timeHidden = document.getElementById("selectedTime");
+    if (timeHidden) timeHidden.value = "";
 }
 
 // =======================
-// CREATE SCHEDULE
+// CREATE SCHEDULE (com validações)
 // =======================
 async function createSchedule() {
-    console.log("createSchedule chamada");
+    console.log("createSchedule iniciada");
+
     const companyId = getCompanyId();
     const token = getToken();
     if (!companyId || !token) {
@@ -206,28 +224,57 @@ async function createSchedule() {
         return;
     }
 
-    const serviceId = document.getElementById("services").value;
-    const employeeId = document.getElementById("employees").value;
-    const clientName = document.getElementById("clientName").value.trim();
-    const clientPhone = document.getElementById("clientPhone").value.trim();
-    const startTime = document.getElementById("selectedTime").value;
+    const serviceSelect = document.getElementById("services");
+    const employeeSelect = document.getElementById("employees");
+    const nameInput = document.getElementById("clientName");
+    const emailInput = document.getElementById("clientEmail");
+    const timeHidden = document.getElementById("selectedTime");
 
-    if (!serviceId || !employeeId || !clientName || !clientPhone || !startTime) {
+    if (!serviceSelect || !employeeSelect || !nameInput || !emailInput || !timeHidden) {
+        alert("Erro: alguns campos não foram encontrados. Recarregue a página.");
+        return;
+    }
+
+    const serviceId = serviceSelect.value;
+    const employeeId = employeeSelect.value;
+    const clientName = nameInput.value.trim();
+    const clientEmail = emailInput.value.trim();
+    const startTime = timeHidden.value;
+
+    if (!serviceId || !employeeId || !clientName || !clientEmail || !startTime) {
         alert("Preencha todos os campos e selecione um horário.");
         return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(clientEmail)) {
+        alert("Por favor, insira um e-mail válido.");
+        return;
+    }
+
     const date = document.getElementById("selectedDate").value;
+    if (!date) {
+        alert("Data inválida.");
+        return;
+    }
+
     const startDateTime = new Date(date + 'T' + startTime);
+    if (isNaN(startDateTime.getTime())) {
+        alert("Data/hora inválida.");
+        return;
+    }
     const isoStart = startDateTime.toISOString();
 
+    // AGORA ENVIA clientEmail (não clientPhone)
     const body = {
         serviceId: serviceId,
         employeeId: employeeId,
         clientName: clientName,
-        clientPhone: clientPhone,
+        clientEmail: clientEmail,   // <-- mudança aqui
         startTime: isoStart
     };
+
+    console.log("Enviando body:", body);
 
     try {
         const response = await fetch(`${API_URL}/schedules`, {
@@ -245,8 +292,8 @@ async function createSchedule() {
         }
 
         alert("Agendamento criado com sucesso!");
-        document.getElementById("clientName").value = "";
-        document.getElementById("clientPhone").value = "";
+        nameInput.value = "";
+        emailInput.value = "";
         cancelForm();
         loadDay();
     } catch (error) {
@@ -256,7 +303,7 @@ async function createSchedule() {
 }
 
 // =======================
-// CANCEL SCHEDULE (soft delete)
+// CANCEL SCHEDULE
 // =======================
 async function cancelSchedule(id) {
     if (!confirm("Cancelar este agendamento?")) return;
@@ -300,6 +347,7 @@ async function loadEditServices() {
         if (!response.ok) throw new Error(`Erro ${response.status}`);
         const data = await response.json();
         const select = document.getElementById("edit-services");
+        if (!select) return;
         select.innerHTML = "";
         if (!Array.isArray(data) || data.length === 0) {
             select.innerHTML = '<option disabled>Nenhum serviço</option>';
@@ -328,6 +376,7 @@ async function loadEditEmployees() {
         if (!response.ok) throw new Error(`Erro ${response.status}`);
         const data = await response.json();
         const select = document.getElementById("edit-employees");
+        if (!select) return;
         select.innerHTML = "";
         if (!Array.isArray(data) || data.length === 0) {
             select.innerHTML = '<option disabled>Nenhum funcionário</option>';
@@ -368,7 +417,8 @@ async function openEditModal(id) {
         document.getElementById("edit-services").value = appointment.serviceId || '';
         document.getElementById("edit-employees").value = appointment.employeeId || '';
         document.getElementById("edit-clientName").value = appointment.clientName || '';
-        document.getElementById("edit-clientPhone").value = appointment.clientPhone || '';
+        // O backend agora retorna clientEmail (não clientPhone)
+        document.getElementById("edit-clientEmail").value = appointment.clientEmail || '';
         if (appointment.startTime) {
             const dt = new Date(appointment.startTime);
             const local = dt.toISOString().slice(0, 16);
@@ -387,7 +437,7 @@ function closeEditModal() {
     document.getElementById("edit-modal").style.display = "none";
     document.getElementById("edit-id").value = "";
     document.getElementById("edit-clientName").value = "";
-    document.getElementById("edit-clientPhone").value = "";
+    document.getElementById("edit-clientEmail").value = "";
     document.getElementById("edit-startTime").value = "";
 }
 
@@ -401,11 +451,17 @@ async function updateSchedule() {
     const serviceId = document.getElementById("edit-services").value;
     const employeeId = document.getElementById("edit-employees").value;
     const clientName = document.getElementById("edit-clientName").value.trim();
-    const clientPhone = document.getElementById("edit-clientPhone").value.trim();
+    const clientEmail = document.getElementById("edit-clientEmail").value.trim();
     const startTime = document.getElementById("edit-startTime").value;
 
-    if (!serviceId || !employeeId || !clientName || !clientPhone || !startTime) {
+    if (!serviceId || !employeeId || !clientName || !clientEmail || !startTime) {
         alert("Preencha todos os campos.");
+        return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(clientEmail)) {
+        alert("Por favor, insira um e-mail válido.");
         return;
     }
 
@@ -419,7 +475,7 @@ async function updateSchedule() {
         serviceId: serviceId,
         employeeId: employeeId,
         clientName: clientName,
-        clientPhone: clientPhone,
+        clientEmail: clientEmail,   // <-- mudança aqui
         startTime: startTime
     };
 

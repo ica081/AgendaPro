@@ -3,6 +3,7 @@ using System;
 using AgendaApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AgendaApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260809215817_AddCancellationTokens")]
+    partial class AddCancellationTokens
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
@@ -55,9 +58,6 @@ namespace AgendaApi.Migrations
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("ReminderSent")
-                        .HasColumnType("INTEGER");
-
                     b.Property<Guid?>("ServiceId")
                         .HasColumnType("TEXT");
 
@@ -97,9 +97,6 @@ namespace AgendaApi.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<TimeSpan?>("OpeningTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ReminderSettingsJson")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("WorkScheduleJson")

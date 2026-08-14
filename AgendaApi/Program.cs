@@ -1,5 +1,6 @@
 using AgendaApi.Models;
 using AgendaApi.Data;
+using AgendaApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -43,6 +44,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
+
+// =======================
+// REGISTRO DE SERVIÇOS DE EMAIL E LEMBRETE
+// =======================
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHostedService<ReminderService>();
 
 var app = builder.Build();
 
@@ -106,53 +113,18 @@ async Task<bool> HasValidMxRecordAsync(string email)
     }
 }
 
-// 3. Envio de email (com MailKit) - COM LOGS DETALHADOS
-async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
-{
-    Console.WriteLine($"[EMAIL] Iniciando envio para {toEmail}");
-
-    var smtpHost = builder.Configuration["EmailSettings:SmtpHost"] ?? "smtp.gmail.com";
-    var smtpPort = int.Parse(builder.Configuration["EmailSettings:SmtpPort"] ?? "587");
-    var smtpUser = builder.Configuration["EmailSettings:Username"] ?? "";
-    var smtpPass = builder.Configuration["EmailSettings:Password"] ?? "";
-
-    Console.WriteLine($"[EMAIL] Host={smtpHost}, Porta={smtpPort}, User={smtpUser}");
-
-    if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass))
-    {
-        Console.WriteLine("[EMAIL] ERRO: Credenciais não configuradas!");
-        throw new Exception("Credenciais de e-mail não configuradas.");
-    }
-
-    var message = new MimeMessage();
-    message.From.Add(new MailboxAddress("AgendaPro", smtpUser));
-    message.To.Add(new MailboxAddress("Cliente", toEmail));
-    message.Subject = subject;
-    message.Body = new TextPart("html") { Text = htmlBody };
-
-    using (var client = new SmtpClient())
-    {
-        Console.WriteLine("[EMAIL] Conectando ao SMTP...");
-        await client.ConnectAsync(smtpHost, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
-        Console.WriteLine("[EMAIL] Conectado. Autenticando...");
-        await client.AuthenticateAsync(smtpUser, smtpPass);
-        Console.WriteLine("[EMAIL] Autenticado. Enviando mensagem...");
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
-        Console.WriteLine("[EMAIL] Mensagem enviada com sucesso!");
-    }
-}
-
 // =======================
-// ENDPOINT DE TESTE DE EMAIL
+// ENDPOINT DE TESTE DE EMAIL (USANDO IServiceScopeFactory)
 // =======================
-app.MapGet("/test-email", async (string? to) =>
+app.MapGet("/test-email", async (string? to, IServiceScopeFactory scopeFactory) =>
 {
     try
     {
         string testEmail = to ?? "seu-email@teste.com";
+        using var scope = scopeFactory.CreateScope();
+        var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
         Console.WriteLine($"[TESTE] Enviando email de teste para {testEmail}");
-        await SendEmailAsync(testEmail, "Teste AgendaPro", "<h1>Teste</h1><p>Se você recebeu este e-mail, o SMTP está funcionando!</p>");
+        await emailService.SendEmailAsync(testEmail, "Teste AgendaPro", "<h1>Teste</h1><p>Se você recebeu este e-mail, o SMTP está funcionando!</p>");
         return Results.Ok($"Email enviado com sucesso para {testEmail}!");
     }
     catch (Exception ex)
@@ -252,7 +224,11 @@ app.MapPost("/companies", async (CreateCompanyRequest request, AppDbContext db, 
     var newToken = new JwtSecurityToken(claims: claims, expires: DateTime.UtcNow.AddHours(12), signingCredentials: creds);
     var tokenString = new JwtSecurityTokenHandler().WriteToken(newToken);
 
-    return Results.Ok(new { token = tokenString, companyId = company.Id, company });
+    return Results.Ok(new { 
+        token = tokenString, 
+        companyId = company.Id,
+        company = new { company.Id, company.Name, company.Category }
+    });
 }).RequireAuthorization();
 
 app.MapGet("/companies", async (AppDbContext db, ClaimsPrincipal user) =>
@@ -271,7 +247,8 @@ app.MapGet("/companies", async (AppDbContext db, ClaimsPrincipal user) =>
         c.Id,
         c.Name,
         c.Category,
-        WorkSchedule = c.WorkSchedule
+        WorkSchedule = c.WorkSchedule,
+        ReminderSettings = c.ReminderSettings
     });
 
     return Results.Ok(result);
@@ -306,6 +283,9 @@ app.MapPost("/companies/select", async (SelectCompanyRequest request, AppDbConte
     return Results.Ok(new { token = tokenString, companyId = request.CompanyId });
 }).RequireAuthorization();
 
+// =======================
+// ENDPOINT ATUALIZADO - ACEITA ReminderSettings
+// =======================
 app.MapPut("/companies/settings", async (UpdateCompanySettingsRequest request, AppDbContext db, ClaimsPrincipal user) =>
 {
     var companyId = GetCompanyId(user);
@@ -321,6 +301,9 @@ app.MapPut("/companies/settings", async (UpdateCompanySettingsRequest request, A
 
     if (request.OpeningTime.HasValue) company.OpeningTime = request.OpeningTime;
     if (request.ClosingTime.HasValue) company.ClosingTime = request.ClosingTime;
+
+    if (request.ReminderSettings != null)
+        company.ReminderSettings = request.ReminderSettings;
 
     await db.SaveChangesAsync();
     return Results.Ok(company);
@@ -1046,7 +1029,7 @@ app.MapGet("/public/company/{id}", async (Guid id, AppDbContext db) =>
 {
     var company = await db.Companies.FindAsync(id);
     if (company == null) return Results.NotFound();
-    return Results.Ok(new { company.Id, company.Name, company.Category, company.WorkSchedule });
+    return Results.Ok(new { company.Id, company.Name, company.Category, company.WorkSchedule, company.ReminderSettings });
 });
 
 app.MapGet("/public/services", async (Guid companyId, AppDbContext db) =>
@@ -1125,9 +1108,9 @@ app.MapGet("/public/monthly-slots", async (Guid companyId, int year, int month, 
 });
 
 // =======================
-// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (COM CONFIRMAÇÃO)
+// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (COM CONFIRMAÇÃO E CANCELAMENTO)
 // =======================
-app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db) =>
+app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db, IServiceScopeFactory scopeFactory) =>
 {
     try
     {
@@ -1195,7 +1178,7 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         var existingUser = await db.Users
             .FirstOrDefaultAsync(u => u.Email == request.ClientEmail && u.Type == UserType.Client);
 
-        // 11. Criar agendamento com status Pending e token
+        // 11. Criar agendamento com status Pending e tokens
         var appointment = new Appointment
         {
             CompanyId = companyId,
@@ -1208,32 +1191,46 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
             Status = "Pending",
             ClientUserId = existingUser?.Id,
             ConfirmationToken = Guid.NewGuid().ToString(),
-            ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24)
+            ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24),
+            CancellationToken = Guid.NewGuid().ToString(),
+            CancellationTokenExpiry = DateTime.UtcNow.AddDays(7)
         };
 
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync();
 
-        // 12. Enviar e-mail de confirmação
-        string confirmLink = $"http://localhost:5182/confirm?token={appointment.ConfirmationToken}";
+        // 12. Montar URLs
+        string baseUrl = "http://localhost:5182";
+        string confirmLink = $"{baseUrl}/confirm?token={appointment.ConfirmationToken}";
+        string cancelLink = $"{baseUrl}/cancel?token={appointment.CancellationToken}";
+
+        // 13. Corpo do e-mail
         string emailBody = $@"
             <h2>Confirme seu agendamento</h2>
             <p>Olá {appointment.ClientName},</p>
-            <p>Você agendou um serviço para {startTime:dd/MM/yyyy HH:mm}.</p>
-            <p>Clique no link abaixo para confirmar:</p>
-            <a href='{confirmLink}'>Confirmar Agendamento</a>
-            <p>Este link expira em 24 horas.</p>
+            <p>Você agendou o serviço <strong>'{service.Name}'</strong> na empresa <strong>'{company.Name}'</strong> para o dia <strong>{startTime:dd/MM/yyyy HH:mm}</strong>.</p>
+            <p>Por favor, clique no botão abaixo para confirmar:</p>
+            <p><a href='{confirmLink}' style='display:inline-block; padding:12px 24px; background:#2563eb; color:white; text-decoration:none; border-radius:6px;'>Confirmar Agendamento</a></p>
+            <p>Se não foi você quem fez este agendamento, ignore este e-mail.</p>
+            <hr>
+            <p style='font-size:14px; color:#6b7280;'>Para cancelar este agendamento, clique aqui:</p>
+            <p><a href='{cancelLink}' style='display:inline-block; padding:8px 16px; background:#ef4444; color:white; text-decoration:none; border-radius:6px;'>Cancelar Agendamento</a></p>
+            <p style='font-size:12px; color:#9ca3af;'>O link de confirmação expira em 24 horas. O link de cancelamento expira em 7 dias.</p>
             <p>Atenciosamente,<br/>AgendaPro</p>
         ";
 
-        try
+        // USANDO IServiceScopeFactory PARA RESOLVER O SERVIÇO SCOPED
+        using (var scope = scopeFactory.CreateScope())
         {
-            await SendEmailAsync(request.ClientEmail, "Confirme seu agendamento", emailBody);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Erro ao enviar email: {ex.Message}");
-            // Não falhamos a requisição, apenas logamos
+            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+            try
+            {
+                await emailService.SendEmailAsync(request.ClientEmail, "Confirme seu agendamento", emailBody);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao enviar email: {ex.Message}");
+            }
         }
 
         return Results.Ok(new
@@ -1272,6 +1269,9 @@ app.MapGet("/confirm", async (string token, AppDbContext db) =>
     if (appointment.Status == "Active")
         return Results.Ok("Agendamento já foi confirmado anteriormente.");
 
+    if (appointment.Status == "Canceled")
+        return Results.BadRequest("Este agendamento foi cancelado e não pode ser confirmado.");
+
     appointment.Status = "Active";
     appointment.ConfirmationToken = null;
     appointment.ConfirmationTokenExpiry = null;
@@ -1281,7 +1281,38 @@ app.MapGet("/confirm", async (string token, AppDbContext db) =>
 });
 
 // =======================
-// SERVE FRONT-END (arquivos estáticos)
+// ENDPOINT DE CANCELAMENTO
+// =======================
+app.MapGet("/cancel", async (string token, AppDbContext db) =>
+{
+    var appointment = await db.Appointments
+        .FirstOrDefaultAsync(a => a.CancellationToken == token);
+
+    if (appointment == null)
+        return Results.NotFound("Token inválido ou agendamento não encontrado.");
+
+    if (appointment.CancellationTokenExpiry < DateTime.UtcNow)
+        return Results.BadRequest("Token expirado. Entre em contato com a empresa para cancelar.");
+
+    if (appointment.Status == "Canceled")
+        return Results.Ok("Este agendamento já foi cancelado.");
+
+    if (appointment.Status == "Pending")
+        return Results.BadRequest("Agendamento ainda não confirmado. Para cancelar, aguarde a confirmação ou entre em contato.");
+
+    if (appointment.StartTime < DateTime.Now.AddHours(1))
+        return Results.BadRequest("Não é possível cancelar faltando menos de 1 hora para o horário agendado. Entre em contato com a empresa.");
+
+    appointment.Status = "Canceled";
+    appointment.CancellationToken = null;
+    appointment.CancellationTokenExpiry = null;
+    await db.SaveChangesAsync();
+
+    return Results.Ok("Agendamento cancelado com sucesso!");
+});
+
+// =======================
+// SERVE FRONT-END
 // =======================
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -1327,7 +1358,7 @@ public class CreateScheduleRequest
     public Guid ServiceId { get; set; }
     public Guid EmployeeId { get; set; }
     public string ClientName { get; set; } = "";
-    public string ClientEmail { get; set; } = ""; // Antes ClientPhone
+    public string ClientEmail { get; set; } = "";
     public DateTime StartTime { get; set; }
 }
 
@@ -1343,7 +1374,7 @@ public class UpdateAppointmentRequest
     public Guid? ServiceId { get; set; }
     public Guid? EmployeeId { get; set; }
     public string? ClientName { get; set; }
-    public string? ClientEmail { get; set; } // Antes ClientPhone
+    public string? ClientEmail { get; set; }
     public DateTime? StartTime { get; set; }
 }
 
@@ -1352,6 +1383,7 @@ public class UpdateCompanySettingsRequest
     public TimeSpan? OpeningTime { get; set; }
     public TimeSpan? ClosingTime { get; set; }
     public WorkSchedule? WorkSchedule { get; set; }
+    public ReminderSettings? ReminderSettings { get; set; }
 }
 
 public class UpdateCompanyRequest

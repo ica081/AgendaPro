@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Configurações de Horário</title>
+    <title>Configurações - AgendaPro</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; }
@@ -45,28 +45,70 @@
         .rules-container label { display: inline-block; margin: 5px 0; }
         .rules-container input[type="number"] { padding: 4px; width: 70px; border: 1px solid #ccc; border-radius: 4px; }
         .rules-container .hint { font-size: 12px; color: #666; margin-left: 5px; }
+        .reminder-container { margin: 15px 0; padding: 15px; background: #fff3e0; border-radius: 6px; border: 1px solid #ffb74d; }
+        .reminder-container h4 { margin: 0 0 10px 0; }
+        .reminder-container label { display: inline-block; margin: 5px 0; }
+        .reminder-container select, .reminder-container input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
         .message { padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
         .message.success { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
         .message.error { display: block; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
         .slot-badge { background: #4CAF50; color: white; padding: 4px 12px; border-radius: 12px; display: inline-block; margin: 4px; }
         #slots-display { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .test-container { margin-top: 20px; background: #e3f2fd; padding: 15px; border-radius: 6px; }
+        .reminder-config { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin: 10px 0; }
+        .reminder-config select, .reminder-config input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+        .reminder-config label { font-weight: normal; }
     </style>
 </head>
 <body>
-    <h2>⚙️ Configurações de Horário</h2>
-    <p>Defina os horários de funcionamento para cada dia da semana. <strong>Não há horários padrão</strong> – você deve configurar cada dia manualmente.</p>
+    <h2>⚙️ Configurações</h2>
+    <p>Defina os horários de funcionamento, regras de agendamento e lembretes por e-mail.</p>
 
     <div id="message" class="message"></div>
 
+    <!-- ===== SEÇÃO DE LEMBRETES ===== -->
+    <div class="reminder-container">
+        <h4>📧 Lembretes por E-mail</h4>
+        <p style="font-size:13px; color:#666; margin:0 0 10px 0;">Envie lembretes automáticos para os clientes antes do agendamento.</p>
+        <div class="reminder-config">
+            <label>
+                <input type="checkbox" id="reminderEnabled"> Ativar lembretes
+            </label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <label>Enviar</label>
+                <input type="number" id="reminderOffset" value="1" min="1" style="width:60px;">
+                <select id="reminderUnit">
+                    <option value="Hours">Hora(s)</option>
+                    <option value="Days">Dia(s)</option>
+                </select>
+                <label style="margin-left:5px;">antes do serviço</label>
+                <select id="reminderSendTime" style="width:auto;">
+                    <option value="BeforeAppointment">Antes do horário</option>
+                    <option value="DayOfAppointment">Na meia-noite do dia</option>
+                </select>
+            </div>
+        </div>
+        <p style="font-size:12px; color:#999; margin:5px 0 0 0;">
+            <strong>Exemplos:</strong> 
+            "1 Hora(s) antes do serviço" → envia 1 hora antes. 
+            "Na meia-noite do dia" → envia às 00:00 do dia do agendamento.
+        </p>
+    </div>
+
+    <!-- ===== HORÁRIOS ===== -->
+    <h3 style="margin-top:20px;">📅 Horário de Funcionamento</h3>
+    <p style="font-size:14px; color:#666;">Configure os períodos de funcionamento para cada dia da semana. <strong>Não há horários padrão</strong> – você deve configurar cada dia manualmente.</p>
+
     <div id="settings-container"></div>
 
+    <!-- ===== BOTÕES ===== -->
     <div style="margin-top:20px; display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn-save" onclick="saveSettings()">💾 Salvar</button>
         <button class="btn-test" onclick="testSlots()">🧪 Testar Slots</button>
         <button class="btn-back" onclick="window.location.href='dashboard-empresa.html'">⬅️ Voltar</button>
     </div>
 
+    <!-- ===== RESULTADO DO TESTE ===== -->
     <div id="test-result" style="display:none; margin-top: 20px; background: #fff3e0; padding: 15px; border-radius: 6px; border: 1px solid #FF9800;">
         <h4>Slots gerados para hoje:</h4>
         <div id="slots-display"></div>
@@ -80,6 +122,7 @@
         function getCompanyId() { return localStorage.getItem("companyId"); }
 
         let currentSchedule = null;
+        let currentReminder = null;
 
         function showMessage(text, type) {
             const el = document.getElementById('message');
@@ -111,6 +154,21 @@
                     allowSameDayMultiple: true
                 };
 
+                // Carregar configurações de lembrete
+                currentReminder = company.reminderSettings || {
+                    enabled: false,
+                    offsetValue: 1,
+                    offsetUnit: "Hours",
+                    sendTime: "BeforeAppointment"
+                };
+
+                // Preencher os campos de lembrete
+                document.getElementById('reminderEnabled').checked = currentReminder.enabled || false;
+                document.getElementById('reminderOffset').value = currentReminder.offsetValue || 1;
+                document.getElementById('reminderUnit').value = currentReminder.offsetUnit || "Hours";
+                document.getElementById('reminderSendTime').value = currentReminder.sendTime || "BeforeAppointment";
+
+                // Preencher dias da semana
                 for (let i = 0; i < 7; i++) {
                     if (!currentSchedule.days[i]) {
                         currentSchedule.days[i] = { isClosed: true, periods: [] };
@@ -281,6 +339,7 @@
         };
 
         async function saveSettings() {
+            // Coletar dados do formulário
             const stepInput = document.getElementById('stepInput');
             if (stepInput) {
                 currentSchedule.stepMinutes = parseInt(stepInput.value) || 30;
@@ -299,11 +358,18 @@
                 currentSchedule.allowSameDayMultiple = allowSameDay.checked;
             }
 
+            // Limpar períodos de dias fechados
             for (let i = 0; i < 7; i++) {
                 if (currentSchedule.days[i] && currentSchedule.days[i].isClosed) {
                     currentSchedule.days[i].periods = [];
                 }
             }
+
+            // Coletar dados de lembrete
+            const reminderEnabled = document.getElementById('reminderEnabled').checked;
+            const reminderOffset = parseInt(document.getElementById('reminderOffset').value) || 1;
+            const reminderUnit = document.getElementById('reminderUnit').value;
+            const reminderSendTime = document.getElementById('reminderSendTime').value;
 
             const payload = {
                 WorkSchedule: {
@@ -313,6 +379,12 @@
                     allowMultiplePerClient: currentSchedule.allowMultiplePerClient,
                     maxActiveAppointmentsPerClient: currentSchedule.maxActiveAppointmentsPerClient,
                     allowSameDayMultiple: currentSchedule.allowSameDayMultiple
+                },
+                ReminderSettings: {
+                    enabled: reminderEnabled,
+                    offsetValue: reminderOffset,
+                    offsetUnit: reminderUnit,
+                    sendTime: reminderSendTime
                 }
             };
 

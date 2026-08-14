@@ -15,7 +15,7 @@ namespace AgendaApi.Models
         public Employee? Employee { get; set; }
 
         public string ClientName { get; set; } = "";
-        public string ClientEmail { get; set; } = ""; // antes ClientPhone
+        public string ClientEmail { get; set; } = "";
 
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
@@ -27,5 +27,12 @@ namespace AgendaApi.Models
         // Campos para confirmação
         public string? ConfirmationToken { get; set; }
         public DateTime? ConfirmationTokenExpiry { get; set; }
+
+        // Campos para cancelamento
+        public string? CancellationToken { get; set; }
+        public DateTime? CancellationTokenExpiry { get; set; }
+
+        // NOVO: indica se o lembrete já foi enviado
+        public bool ReminderSent { get; set; } = false;
     }
 }

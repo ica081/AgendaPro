@@ -20,12 +20,20 @@ public class Company
         set => WorkScheduleJson = JsonSerializer.Serialize(value);
     }
 
+    // NOVO: Configurações de lembrete
+    public string? ReminderSettingsJson { get; set; }
+
+    [NotMapped]
+    public ReminderSettings? ReminderSettings
+    {
+        get => ReminderSettingsJson == null ? null : JsonSerializer.Deserialize<ReminderSettings>(ReminderSettingsJson);
+        set => ReminderSettingsJson = JsonSerializer.Serialize(value);
+    }
+
     public ICollection<UserCompany> UserCompanies { get; set; } = new List<UserCompany>();
     public ICollection<Service> Services { get; set; } = new List<Service>();
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
-    
-    
 }
 
 public class WorkSchedule

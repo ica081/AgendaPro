@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,12 +16,14 @@ public class ReminderService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ReminderService> _logger;
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(1); // verifica a cada 1 minuto
+    private readonly IConfiguration _configuration;
+    private readonly TimeSpan _interval = TimeSpan.FromMinutes(1);
 
-    public ReminderService(IServiceProvider serviceProvider, ILogger<ReminderService> logger)
+    public ReminderService(IServiceProvider serviceProvider, ILogger<ReminderService> logger, IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -44,10 +47,8 @@ public class ReminderService : BackgroundService
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-            // Buscar agendamentos ativos com lembrete não enviado
             var now = DateTime.Now;
 
-            // Carregar os agendamentos com suas empresas (para pegar as configurações)
             var appointments = await db.Appointments
                 .Include(a => a.Company)
                 .Include(a => a.Service)
@@ -62,26 +63,22 @@ public class ReminderService : BackgroundService
                 var settings = company.ReminderSettings;
                 if (settings == null || !settings.Enabled) continue;
 
-                // Calcular quando o lembrete deve ser enviado
                 DateTime reminderTime;
                 if (settings.SendTime == "DayOfAppointment")
                 {
-                    // Meia-noite do dia do serviço
                     reminderTime = appointment.StartTime.Date;
                 }
                 else // "BeforeAppointment"
                 {
-                    // Subtrair o offset do horário do agendamento
                     int offset = settings.OffsetValue;
                     if (settings.OffsetUnit == "Hours")
                         reminderTime = appointment.StartTime.AddHours(-offset);
                     else if (settings.OffsetUnit == "Days")
                         reminderTime = appointment.StartTime.AddDays(-offset);
                     else
-                        continue; // unidade inválida
+                        continue;
                 }
 
-                // Se já passou do horário de enviar o lembrete, envia
                 if (reminderTime <= now)
                 {
                     await SendReminderEmail(appointment, company, emailService);
@@ -102,12 +99,25 @@ public class ReminderService : BackgroundService
         string serviceName = appointment.Service?.Name ?? "Serviço";
         string subject = $"Lembrete: {serviceName} - {company.Name}";
 
+        // URL base para gerar o link de cancelamento
+        string baseUrl = _configuration["BaseUrl"] ?? "http://localhost:5182";
+        string cancelLink = !string.IsNullOrEmpty(appointment.CancellationToken) 
+            ? $"{baseUrl}/cancel?token={appointment.CancellationToken}" 
+            : null;
+
         string body = $@"
             <h2>Lembrete do seu agendamento</h2>
             <p>Olá {appointment.ClientName},</p>
             <p>Este é um lembrete do seu agendamento de <strong>'{serviceName}'</strong> na empresa <strong>'{company.Name}'</strong>.</p>
             <p><strong>Data/Hora:</strong> {appointment.StartTime:dd/MM/yyyy HH:mm}</p>
-            <p>Se precisar cancelar ou remarcar, entre em contato com a empresa.</p>
+            
+            " + (cancelLink != null ? $@"
+            <hr>
+            <p style='font-size:14px; color:#6b7280;'>Para cancelar este agendamento, clique no botão abaixo:</p>
+            <p><a href='{cancelLink}' style='display:inline-block; padding:8px 16px; background:#ef4444; color:white; text-decoration:none; border-radius:6px;'>Cancelar Agendamento</a></p>
+            <p style='font-size:12px; color:#9ca3af;'>Este link é válido até 7 dias após a criação do agendamento.</p>
+            " : "")
+            + $@"
             <p>Atenciosamente,<br/>{company.Name}</p>
         ";
 

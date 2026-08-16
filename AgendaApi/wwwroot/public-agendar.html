@@ -4,25 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agendar - AgendaPro</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #f5f7fa;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background: white;
-            border-radius: 16px;
-            padding: 30px 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
+        /* ===== ESTILOS ESPECÍFICOS DA PÁGINA PÚBLICA ===== */
         .company-header {
             text-align: center;
             margin-bottom: 24px;
@@ -37,186 +21,7 @@
             color: #6b7280;
             font-size: 15px;
         }
-        .month-nav {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 20px 0 16px;
-        }
-        .month-nav button {
-            background: #e5e7eb;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.15s;
-        }
-        .month-nav button:hover {
-            background: #d1d5db;
-        }
-        .month-nav .month-label {
-            font-weight: 600;
-            font-size: 18px;
-        }
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            margin-bottom: 20px;
-        }
-        .calendar-grid .day-name {
-            text-align: center;
-            font-weight: 600;
-            font-size: 13px;
-            color: #6b7280;
-            padding: 8px 0;
-        }
-        .calendar-grid .day-cell {
-            text-align: center;
-            padding: 8px 0;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.15s;
-            background: #f9fafb;
-            border: 1px solid transparent;
-            position: relative;
-        }
-        .calendar-grid .day-cell:hover:not(.empty):not(.disabled) {
-            background: #e5e7eb;
-        }
-        .calendar-grid .day-cell.selected {
-            background: #2563eb;
-            color: white;
-            border-color: #2563eb;
-        }
-        .calendar-grid .day-cell.has-slots {
-            border-color: #93c5fd;
-            font-weight: 600;
-        }
-        .calendar-grid .day-cell.empty {
-            cursor: default;
-            background: transparent;
-        }
-        .calendar-grid .day-cell.disabled {
-            color: #d1d5db;
-            cursor: not-allowed;
-        }
-        .calendar-grid .day-cell .badge {
-            display: inline-block;
-            background: #2563eb;
-            color: white;
-            border-radius: 50%;
-            font-size: 10px;
-            padding: 1px 5px;
-            margin-left: 4px;
-        }
-        .slots-container {
-            margin: 20px 0;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 16px;
-        }
-        .slots-container h3 {
-            margin: 0 0 12px;
-            font-size: 16px;
-            color: #1f2937;
-        }
-        .slot-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-        }
-        .slot {
-            padding: 8px 4px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 14px;
-            cursor: pointer;
-            background: #f9fafb;
-            transition: 0.15s;
-        }
-        .slot:hover:not(.occupied) {
-            background: #e5e7eb;
-        }
-        .slot.occupied {
-            background: #fee2e2;
-            border-color: #fca5a5;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-        .slot.selected {
-            background: #2563eb;
-            color: white;
-            border-color: #2563eb;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 4px;
-            color: #1f2937;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 15px;
-            background: white;
-        }
-        .form-group input:focus {
-            outline: 2px solid #2563eb;
-            border-color: transparent;
-        }
-        .btn-primary {
-            width: 100%;
-            padding: 12px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.15s;
-            margin-top: 8px;
-        }
-        .btn-primary:hover {
-            background: #1d4ed8;
-        }
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            display: none;
-        }
-        .alert.error {
-            display: block;
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-        .alert.success {
-            display: block;
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-        .loading {
-            text-align: center;
-            color: #6b7280;
-            padding: 20px 0;
-        }
-        .hidden { display: none; }
+
         .service-employee-selector {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -231,14 +36,69 @@
             font-size: 15px;
             background: white;
         }
+
+        /* Sobrescreve cores do CSS global para manter identidade visual */
+        .btn-primary {
+            background: #2563eb !important;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8 !important;
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .calendar-grid .day-cell.selected {
+            background: #2563eb !important;
+            color: white !important;
+            border-color: #2563eb !important;
+        }
+        .calendar-grid .day-cell.has-slots {
+            border-color: #93c5fd !important;
+            font-weight: 600;
+        }
+
+        .slot.selected {
+            background: #2563eb !important;
+            color: white !important;
+            border-color: #2563eb !important;
+        }
+        .slot.occupied {
+            background: #fee2e2 !important;
+            border-color: #fca5a5 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .slots-container {
+            margin: 20px 0;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+        }
+        .slots-container h3 {
+            margin: 0 0 12px;
+            font-size: 16px;
+            color: #1f2937;
+        }
+
+        .form-group input:focus {
+            outline: 2px solid #2563eb !important;
+            border-color: transparent !important;
+        }
+
         @media (max-width: 600px) {
-            .calendar-grid .day-cell { font-size: 12px; padding: 6px 0; }
-            .service-employee-selector { grid-template-columns: 1fr; }
-            .slot-grid { grid-template-columns: repeat(3, 1fr); }
+            .service-employee-selector {
+                grid-template-columns: 1fr;
+            }
+            .slot-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
     </style>
 </head>
 <body>
+
 <div class="container" id="app">
     <div id="alert" class="alert"></div>
 
@@ -247,19 +107,17 @@
         <p id="companyCategory"></p>
     </div>
 
-    <!-- Selector de serviço e funcionário -->
     <div class="service-employee-selector">
         <div>
-            <label for="serviceSelect">Serviço</label>
+            <label for="serviceSelect" style="font-weight:500; display:block; margin-bottom:4px;">Serviço</label>
             <select id="serviceSelect"><option value="">Carregando...</option></select>
         </div>
         <div>
-            <label for="employeeSelect">Profissional</label>
+            <label for="employeeSelect" style="font-weight:500; display:block; margin-bottom:4px;">Profissional</label>
             <select id="employeeSelect"><option value="">Carregando...</option></select>
         </div>
     </div>
 
-    <!-- Calendário mensal -->
     <div id="calendarContainer">
         <div class="month-nav">
             <button onclick="changeMonth(-1)">◀</button>
@@ -269,14 +127,12 @@
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
-    <!-- Horários do dia selecionado -->
     <div class="slots-container" id="slotsContainer" style="display:none;">
-        <h3 id="selectedDayLabel">Horários disponíveis</h3>
+        <h3><span id="selectedDayLabel">Horários disponíveis</span></h3>
         <div class="slot-grid" id="slotGrid"></div>
         <p id="slotMessage" style="color: #6b7280; font-size: 14px; margin-top: 6px;"></p>
     </div>
 
-    <!-- Dados do cliente -->
     <div id="bookingForm" style="display:none; margin-top: 16px;">
         <div class="form-group">
             <label for="clientName">Seu nome</label>
@@ -286,7 +142,11 @@
             <label for="clientEmail">E-mail</label>
             <input type="email" id="clientEmail" placeholder="joao@email.com">
         </div>
-        <button class="btn-primary" id="bookBtn" onclick="createBooking()">Agendar</button>
+        <div class="form-group">
+            <label for="clientPhone">Telefone</label>
+            <input type="tel" id="clientPhone" placeholder="(99) 99999-9999">
+        </div>
+        <button class="btn btn-primary btn-block" id="bookBtn" onclick="createBooking()">Agendar</button>
     </div>
 
     <div style="margin-top: 24px; font-size: 13px; color: #9ca3af; text-align: center;">
@@ -297,21 +157,15 @@
 <script>
     const API_URL = "http://localhost:5182";
 
-    // ====== EXTRAIR COMPANY_ID DA URL (suporta query string e path param) ======
     function getCompanyIdFromUrl() {
-        // 1. Tenta buscar da query string (?companyId=...)
         const urlParams = new URLSearchParams(window.location.search);
         const fromQuery = urlParams.get('companyId');
         if (fromQuery) return fromQuery;
-
-        // 2. Tenta buscar do path (/public-agendar.html/ID)
         const path = window.location.pathname;
         const parts = path.split('/');
-        // Ex: ["", "public-agendar.html", "ID"]
         if (parts.length >= 3 && parts[2]) {
             return parts[2];
         }
-
         return null;
     }
 
@@ -324,7 +178,6 @@
     let employeeList = [];
     let daySlotsMap = {};
 
-    // ====== Utilitários ======
     function showAlert(msg, type) {
         const el = document.getElementById('alert');
         el.textContent = msg;
@@ -333,7 +186,6 @@
         setTimeout(() => { el.style.display = 'none'; }, 5000);
     }
 
-    // ====== Carregar dados iniciais ======
     async function loadCompany() {
         try {
             const resp = await fetch(`${API_URL}/public/company/${COMPANY_ID}`);
@@ -397,7 +249,6 @@
         }
     }
 
-    // ====== Calendário ======
     function initCalendar() {
         const today = new Date();
         currentYear = today.getFullYear();
@@ -423,9 +274,8 @@
         const firstDay = new Date(currentYear, currentMonth, 1).getDay();
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        const todayLocalStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        // Dias da semana
         const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
         dayNames.forEach(d => {
             const el = document.createElement('div');
@@ -434,20 +284,22 @@
             grid.appendChild(el);
         });
 
-        // Dias vazios antes do primeiro dia
         for (let i = 0; i < firstDay; i++) {
             const el = document.createElement('div');
             el.className = 'day-cell empty';
             grid.appendChild(el);
         }
 
-        // Dias do mês
         const serviceId = document.getElementById('serviceSelect').value;
         const employeeId = document.getElementById('employeeSelect').value;
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(currentYear, currentMonth, day);
-            const dateStr = dateObj.toISOString().split('T')[0];
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(dateObj.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${dayStr}`;
+
             const hasSlots = await dayHasSlots(dateStr, serviceId, employeeId);
 
             const el = document.createElement('div');
@@ -460,14 +312,13 @@
             } else {
                 el.classList.add('disabled');
             }
-            // Desabilitar dias passados
-            if (dateStr < todayStr) {
+            if (dateStr < todayLocalStr) {
                 el.classList.add('disabled');
                 el.style.cursor = 'not-allowed';
             }
             el.textContent = day;
 
-            if (hasSlots && dateStr >= todayStr) {
+            if (hasSlots && dateStr >= todayLocalStr) {
                 el.onclick = function() {
                     selectDay(dateStr);
                 };
@@ -498,9 +349,7 @@
         }
     }
 
-    // ====== Selecionar um dia ======
     async function selectDay(dateStr) {
-        // Atualizar visual do calendário
         document.querySelectorAll('.day-cell').forEach(el => {
             el.classList.remove('selected');
         });
@@ -523,21 +372,32 @@
         const container = document.getElementById('slotsContainer');
         const grid = document.getElementById('slotGrid');
         const msg = document.getElementById('slotMessage');
-        const label = document.getElementById('selectedDayLabel');
+        const labelSpan = document.getElementById('selectedDayLabel');
 
-        const dateObj = new Date(dateStr);
-        label.textContent = `Horários disponíveis em ${dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+        const now = new Date();
+
+        const parts = dateStr.split('-');
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const day = parseInt(parts[2]);
+        const dayNames = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+        const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+                            'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+        const dateObj = new Date(year, month, day);
+        const weekday = dateObj.getDay();
+        const dayName = dayNames[weekday];
+        const monthName = monthNames[month];
+        const formattedDate = `${dayName}, ${day} de ${monthName} de ${year}`;
+        labelSpan.textContent = `Horários disponíveis em ${formattedDate}`;
 
         grid.innerHTML = '<div class="loading">Carregando horários...</div>';
         container.style.display = 'block';
 
         try {
-            // 1. Buscar slots teóricos
             const slotsResp = await fetch(`${API_URL}/public/slots?companyId=${COMPANY_ID}&date=${dateStr}`);
             if (!slotsResp.ok) throw new Error('Erro ao buscar horários');
             const allSlots = await slotsResp.json();
 
-            // 2. Buscar horários ocupados
             const occupiedResp = await fetch(`${API_URL}/public/occupied-slots?companyId=${COMPANY_ID}&date=${dateStr}&employeeId=${employeeId}`);
             let occupied = [];
             if (occupiedResp.ok) {
@@ -553,25 +413,32 @@
 
             selectedDate = dateStr;
 
-            allSlots.forEach(slot => {
-                const isOccupied = occupied.includes(slot);
+            allSlots.forEach(slotTime => {
+                const slotDateTime = new Date(`${dateStr}T${slotTime}:00`);
+                const isPassed = slotDateTime <= now;
+                const isOccupied = occupied.includes(slotTime) || isPassed;
+
                 const div = document.createElement('div');
                 div.className = 'slot' + (isOccupied ? ' occupied' : '');
-                div.textContent = slot;
-                div.dataset.time = slot;
+                div.textContent = slotTime;
+                div.dataset.time = slotTime;
                 if (!isOccupied) {
                     div.onclick = function() {
                         document.querySelectorAll('.slot').forEach(el => el.classList.remove('selected'));
                         div.classList.add('selected');
-                        selectedSlot = slot;
+                        selectedSlot = slotTime;
                         document.getElementById('bookingForm').style.display = 'block';
                     };
                 }
                 grid.appendChild(div);
             });
 
-            const availableCount = allSlots.length - occupied.length;
-            msg.textContent = `${availableCount} horário(s) disponível(is)${occupied.length > 0 ? ` (${occupied.length} ocupado(s))` : ''}`;
+            const availableCount = allSlots.filter(slotTime => {
+                const slotDateTime = new Date(`${dateStr}T${slotTime}:00`);
+                return !occupied.includes(slotTime) && slotDateTime > now;
+            }).length;
+
+            msg.textContent = `${availableCount} horário(s) disponível(is)`;
             document.getElementById('bookingForm').style.display = 'none';
 
         } catch (e) {
@@ -581,12 +448,12 @@
         }
     }
 
-    // ====== Criar agendamento ======
     async function createBooking() {
         const serviceId = document.getElementById('serviceSelect').value;
         const employeeId = document.getElementById('employeeSelect').value;
         const clientName = document.getElementById('clientName').value.trim();
         const clientEmail = document.getElementById('clientEmail').value.trim();
+        const clientPhone = document.getElementById('clientPhone').value.trim();
         const date = selectedDate;
 
         if (!serviceId || !employeeId || !clientName || !clientEmail || !selectedSlot || !date) {
@@ -594,28 +461,28 @@
             return;
         }
 
-        // Validar formato de e-mail (básico)
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(clientEmail)) {
             showAlert('Por favor, insira um e-mail válido.', 'error');
             return;
         }
 
-        const startDateTime = new Date(date + 'T' + selectedSlot);
-        const year = startDateTime.getFullYear();
-        const month = String(startDateTime.getMonth()+1).padStart(2,'0');
-        const day = String(startDateTime.getDate()).padStart(2,'0');
-        const hours = String(startDateTime.getHours()).padStart(2,'0');
-        const minutes = String(startDateTime.getMinutes()).padStart(2,'0');
-        const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+        const slotDateTime = new Date(date + 'T' + selectedSlot);
+        const now = new Date();
+        if (slotDateTime <= now) {
+            showAlert('Este horário já passou. Selecione um horário futuro.', 'error');
+            return;
+        }
 
-        // CORREÇÃO: usar clientEmail (não clientPhone) para compatibilidade com o backend
+        const isoStart = slotDateTime.toISOString();
+
         const body = {
             serviceId,
             employeeId,
             clientName,
             clientEmail,
-            startTime: localDateTime
+            clientPhone,
+            startTime: isoStart
         };
 
         const btn = document.getElementById('bookBtn');
@@ -625,7 +492,10 @@
         try {
             const resp = await fetch(`${API_URL}/public/schedules?companyId=${COMPANY_ID}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(body)
             });
 
@@ -634,27 +504,25 @@
                 throw new Error(errorText || 'Erro ao agendar');
             }
 
-            // Mensagem de sucesso com aviso sobre e-mail de confirmação
             showAlert('Agendamento realizado! Verifique seu e-mail para confirmar.', 'success');
 
-            // Limpar campos e resetar
             document.getElementById('clientName').value = '';
             document.getElementById('clientEmail').value = '';
+            document.getElementById('clientPhone').value = '';
             document.querySelectorAll('.slot.selected').forEach(el => el.classList.remove('selected'));
             selectedSlot = null;
             document.getElementById('bookingForm').style.display = 'none';
-            // Recarregar os slots do dia (para remover o horário ocupado) e recalendarizar
             await selectDay(date);
             renderCalendar();
         } catch (e) {
             showAlert('Erro ao agendar: ' + e.message, 'error');
+            console.error(e);
         } finally {
             btn.disabled = false;
             btn.textContent = 'Agendar';
         }
     }
 
-    // ====== Event listeners ======
     document.getElementById('serviceSelect').addEventListener('change', () => {
         daySlotsMap = {};
         selectedDate = null;
@@ -672,14 +540,12 @@
         renderCalendar();
     });
 
-    // ====== Inicialização ======
     async function init() {
         if (!COMPANY_ID) {
             document.getElementById('companyName').textContent = 'Link inválido';
             showAlert('Link inválido. Verifique o endereço.', 'error');
             return;
         }
-
         await loadCompany();
         await loadServices();
     }

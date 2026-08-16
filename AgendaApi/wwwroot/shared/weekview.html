@@ -1,81 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Agenda Semanal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Semanal - AgendaPro</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <style>
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #f2f2f2; }
-        .hour-cell { width: 60px; background: #f9f9f9; font-weight: bold; }
+        /* ===== ESTILOS ESPECÍFICOS DA AGENDA SEMANAL ===== */
+        .week-container {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 6px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: center;
+        }
+        .hour-cell {
+            width: 60px;
+            background: #f8fafc;
+            font-weight: 600;
+            text-align: center;
+            color: #334155;
+        }
         .appointment {
-            background: #4CAF50;
+            background: #22c55e;
             color: white;
-            padding: 4px 6px;
-            border-radius: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
             font-size: 12px;
             display: inline-block;
             max-width: 100%;
             word-break: break-word;
+            margin: 2px 0;
         }
+        .appointment-client {
+            font-weight: 500;
+        }
+        .appointment-time {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        /* Navegação da semana */
         .week-nav {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
-        .week-nav button {
-            padding: 6px 14px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .week-nav button:hover {
-            background: #1d4ed8;
-        }
-        .week-nav input {
-            padding: 6px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
         .week-nav label {
-            font-weight: 600;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        .week-nav input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid #d1d9e6;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            font-family: inherit;
+        }
+        .week-nav input[type="date"]:focus {
+            outline: none;
+            border-color: #1e88e5;
+            box-shadow: 0 0 0 3px rgba(30,136,229,0.15);
+        }
+        .week-nav .btn-today {
+            background: #6b7280;
+        }
+        .week-nav .btn-today:hover {
+            background: #4b5563;
+        }
+
+        /* Responsividade */
+        @media (max-width: 600px) {
+            table {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 4px;
+            }
+            .hour-cell {
+                width: 40px;
+                font-size: 11px;
+            }
+            .appointment {
+                font-size: 11px;
+                padding: 2px 4px;
+            }
         }
     </style>
 </head>
 <body>
-    <h2>Agenda Semanal</h2>
+
+<div class="container">
+    <h2>📊 Agenda Semanal</h2>
+    <p class="text-muted">Visualize todos os agendamentos da semana.</p>
 
     <div class="week-nav">
-        <button onclick="previousWeek()">◀ Semana anterior</button>
+        <button class="btn btn-outline" onclick="previousWeek()">◀ Semana anterior</button>
         <label for="weekStartDate">Início da semana:</label>
         <input type="date" id="weekStartDate" onchange="loadWeekFromDate()">
-        <button onclick="nextWeek()">Próxima semana ▶</button>
-        <button onclick="loadCurrentWeek()" style="background: #6b7280;">Semana atual</button>
+        <button class="btn btn-primary" onclick="nextWeek()">Próxima semana ▶</button>
+        <button class="btn btn-today" onclick="loadCurrentWeek()" style="background:#6b7280; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">📅 Semana atual</button>
     </div>
 
-    <div id="week-container"></div>
+    <div id="week-container" class="week-container"></div>
 
-    <button onclick="window.location.href='/company/dashboard-empresa.html'">Voltar</button>
+    <div class="flex mt-2">
+        <button class="btn btn-outline" onclick="window.location.href='/company/dashboard-empresa.html'">⬅️ Voltar</button>
+    </div>
+</div>
 
-    <script>
-        // Apenas carrega a semana diretamente
-        document.addEventListener('DOMContentLoaded', function() {
-            const companyId = localStorage.getItem("companyId");
-            if (!companyId) {
-                alert("Você precisa criar uma empresa primeiro.");
-                window.location.href = "/company/companies.html";
-                return;
-            }
-            // Inicializa com a semana atual
-            loadCurrentWeek();
-        });
-    </script>
+<script>
+    // Inicialização (mantida do original)
+    document.addEventListener('DOMContentLoaded', function() {
+        const companyId = localStorage.getItem("companyId");
+        if (!companyId) {
+            alert("Você precisa criar uma empresa primeiro.");
+            window.location.href = "/company/companies.html";
+            return;
+        }
+        loadCurrentWeek();
+    });
+</script>
 
-    <!-- Carrega o weekview.js (agora com navegação) -->
-    <script src="/js/weekview.js?v=5"></script>
+<script src="/js/weekview.js?v=5"></script>
 </body>
 </html>

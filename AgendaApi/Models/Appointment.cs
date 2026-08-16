@@ -16,6 +16,7 @@ namespace AgendaApi.Models
 
         public string ClientName { get; set; } = "";
         public string ClientEmail { get; set; } = "";
+        public string ClientPhone { get; set; } = ""; // NOVO
 
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

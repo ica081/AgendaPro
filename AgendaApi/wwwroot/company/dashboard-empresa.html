@@ -1,135 +1,256 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Empresa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AgendaPro</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-        button { padding: 8px 16px; margin: 4px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .btn-danger { background: #f44336; }
-        .btn-danger:hover { background: #d32f2f; }
-        .btn-outline { background: transparent; color: #333; border: 1px solid #ccc; }
-        .btn-outline:hover { background: #f0f0f0; }
-        .link-box { background: #f0f4ff; padding: 16px; border-radius: 8px; border: 1px solid #b3d4fc; margin: 20px 0; }
-        .link-box input { width: 70%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .link-box button { padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .link-box button:hover { background: #1d4ed8; }
+        /* ===== ESTILOS DO DASHBOARD ===== */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .dashboard-header h2 {
+            margin: 0;
+        }
+        .theme-toggle {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 40px;
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color, #1e293b);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .theme-toggle:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .theme-toggle .icon {
+            font-size: 18px;
+        }
+
+        /* ===== VARIÁVEIS PARA MODO ESCURO ===== */
+        :root {
+            --bg-body: #f5f7fa;
+            --text-color: #1e293b;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --input-bg: #ffffff;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        [data-theme="dark"] {
+            --bg-body: #0f172a;
+            --text-color: #e2e8f0;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --input-bg: #1e293b;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        body {
+            background: var(--bg-body);
+            color: var(--text-color);
+        }
+        .container {
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+        }
+        .card {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        #companySelector {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        #companySelector select {
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .link-box {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+        .link-box h3, .link-box p {
+            color: var(--text-color);
+        }
+        input#publicLink {
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .btn-outline {
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .btn-outline:hover {
+            background: var(--border-color);
+        }
     </style>
 </head>
 <body>
-    <h2>Dashboard - Empresa</h2>
-    <div id="companySelector" style="margin-bottom:15px;"></div>
 
-    <div class="link-box">
+<div class="container">
+    <!-- Cabeçalho com título e botão de tema -->
+    <div class="dashboard-header">
+        <h2>🏢 Dashboard - Empresa</h2>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+            <span class="icon" id="themeIcon">🌙</span>
+            <span id="themeLabel">Escuro</span>
+        </button>
+    </div>
+
+    <!-- Seletor de empresa -->
+    <div class="card" id="companySelector" style="margin-bottom: 20px;"></div>
+
+    <!-- Link de agendamento público -->
+    <div class="card link-box">
         <h3 style="margin: 0 0 8px;">🔗 Link de agendamento público</h3>
         <p style="margin: 0 0 8px; font-size: 14px;">Compartilhe este link com seus clientes para eles agendarem online:</p>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="publicLink" style="flex:1; min-width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;" readonly>
-            <button onclick="copyPublicLink()">Copiar</button>
+            <input type="text" id="publicLink" style="flex:1; min-width: 200px; padding: 10px 14px; border-radius: 8px; font-size: 14px;" readonly>
+            <button class="btn btn-primary" onclick="copyPublicLink()">📋 Copiar</button>
         </div>
     </div>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-        <button onclick="window.location.href='/company/companies.html'">+ Nova Empresa</button>
-        <button onclick="window.location.href='/company/edit-company.html'">Editar / Excluir Empresa</button>
-        <button onclick="window.location.href='/company/services.html'">Serviços</button>
-        <button onclick="window.location.href='/company/schedule.html'">Agenda</button>
-        <button onclick="window.location.href='/company/employees.html'">Funcionários</button>
-        <button onclick="window.location.href='/company/settings.html'">Configurações</button>
-        <button onclick="window.location.href='/shared/weekview.html'">Agenda Semanal</button>
-        <button class="btn-danger" onclick="logout()">Sair</button>
+    <!-- Botões de navegação -->
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+        <button class="btn btn-primary" onclick="window.location.href='/company/companies.html'">➕ Nova Empresa</button>
+        <button class="btn btn-outline" onclick="window.location.href='/company/edit-company.html'">✏️ Editar / Excluir Empresa</button>
+        <button class="btn btn-outline" onclick="window.location.href='/company/services.html'">📋 Serviços</button>
+        <button class="btn btn-outline" onclick="window.location.href='/company/schedule.html'">📅 Agenda</button>
+        <button class="btn btn-outline" onclick="window.location.href='/company/employees.html'">👥 Funcionários</button>
+        <button class="btn btn-outline" onclick="window.location.href='/company/settings.html'">⚙️ Configurações</button>
+        <button class="btn btn-outline" onclick="window.location.href='/shared/weekview.html'">📊 Agenda Semanal</button>
+        <button class="btn btn-danger" onclick="logout()">🚪 Sair</button>
     </div>
+</div>
 
-    <script>
-        const API_URL = "http://localhost:5182";
+<script>
+    const API_URL = "http://localhost:5182";
 
-        const userType = localStorage.getItem("userType");
-        if (userType !== "Company") {
-            window.location.href = "/shared/login.html";
-        }
+    const userType = localStorage.getItem("userType");
+    if (userType !== "Company") {
+        window.location.href = "/shared/login.html";
+    }
 
-        function generatePublicLink() {
+    function generatePublicLink() {
         const companyId = localStorage.getItem("companyId");
         if (!companyId) return "";
-            return window.location.origin + "/public-agendar.html?companyId=" + companyId;
-        }
+        return window.location.origin + "/public-agendar.html?companyId=" + companyId;
+    }
 
-        function copyPublicLink() {
-            const input = document.getElementById('publicLink');
-            if (!input) return;
-            input.select();
-            navigator.clipboard.writeText(input.value).then(() => {
-                alert('Link copiado para a área de transferência!');
-            }).catch(() => {
-                document.execCommand('copy');
-                alert('Link copiado para a área de transferência!');
+    function copyPublicLink() {
+        const input = document.getElementById('publicLink');
+        if (!input) return;
+        input.select();
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('Link copiado para a área de transferência!');
+        }).catch(() => {
+            document.execCommand('copy');
+            alert('Link copiado para a área de transferência!');
+        });
+    }
+
+    async function loadCompanies() {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        try {
+            const resp = await fetch(`${API_URL}/companies`, {
+                headers: { "Authorization": "Bearer " + token }
             });
-        }
-
-        async function loadCompanies() {
-            const token = localStorage.getItem("token");
-            if (!token) return;
-            try {
-                const resp = await fetch(`${API_URL}/companies`, {
-                    headers: { "Authorization": "Bearer " + token }
-                });
-                const data = await resp.json();
-                const container = document.getElementById('companySelector');
-                if (data.length === 0) {
-                    container.innerHTML = '<p>Nenhuma empresa. <a href="/company/companies.html">Criar empresa</a></p>';
-                    return;
-                }
-                let html = '<label for="companySelect">Empresa ativa: </label>';
-                html += '<select id="companySelect" onchange="selectCompany()">';
-                data.forEach(c => {
-                    const selected = c.id === localStorage.getItem("companyId") ? 'selected' : '';
-                    html += `<option value="${c.id}" ${selected}>${c.name}</option>`;
-                });
-                html += '</select>';
-                container.innerHTML = html;
-
-                // Atualiza o link
-                const linkInput = document.getElementById('publicLink');
-                if (linkInput) linkInput.value = generatePublicLink();
-            } catch (e) {
-                console.error('Erro ao carregar empresas:', e);
-                document.getElementById('companySelector').innerHTML = '<p>Erro ao carregar empresas.</p>';
+            const data = await resp.json();
+            const container = document.getElementById('companySelector');
+            if (data.length === 0) {
+                container.innerHTML = '<p>Nenhuma empresa. <a href="/company/companies.html">Criar empresa</a></p>';
+                return;
             }
-        }
+            let html = '<label for="companySelect">Empresa ativa: </label>';
+            html += '<select id="companySelect" onchange="selectCompany()">';
+            data.forEach(c => {
+                const selected = c.id === localStorage.getItem("companyId") ? 'selected' : '';
+                html += `<option value="${c.id}" ${selected}>${c.name}</option>`;
+            });
+            html += '</select>';
+            container.innerHTML = html;
 
-        async function selectCompany() {
-            const companyId = document.getElementById('companySelect').value;
-            const token = localStorage.getItem("token");
-            try {
-                const resp = await fetch(`${API_URL}/companies/select`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify({ companyId })
-                });
-                const data = await resp.json();
-                if (data.token) {
-                    localStorage.setItem("token", data.token);
-                    localStorage.setItem("companyId", data.companyId);
-                    location.reload();
-                }
-            } catch (e) {
-                console.error('Erro ao selecionar empresa:', e);
-                alert('Erro ao trocar de empresa.');
+            const linkInput = document.getElementById('publicLink');
+            if (linkInput) linkInput.value = generatePublicLink();
+        } catch (e) {
+            console.error('Erro ao carregar empresas:', e);
+            document.getElementById('companySelector').innerHTML = '<p>Erro ao carregar empresas.</p>';
+        }
+    }
+
+    async function selectCompany() {
+        const companyId = document.getElementById('companySelect').value;
+        const token = localStorage.getItem("token");
+        try {
+            const resp = await fetch(`${API_URL}/companies/select`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ companyId })
+            });
+            const data = await resp.json();
+            if (data.token) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("companyId", data.companyId);
+                location.reload();
             }
+        } catch (e) {
+            console.error('Erro ao selecionar empresa:', e);
+            alert('Erro ao trocar de empresa.');
         }
+    }
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = "/shared/login.html";
+    function logout() {
+        localStorage.clear();
+        window.location.href = "/shared/login.html";
+    }
+
+    window.onload = function() {
+        loadCompanies();
+        // Inicializar ícone do tema
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('themeIcon').textContent = '☀️';
+            document.getElementById('themeLabel').textContent = 'Claro';
         }
+    };
 
-        window.onload = function() {
-            loadCompanies();
-        };
-    </script>
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const newTheme = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+
+        const icon = document.getElementById('themeIcon');
+        const label = document.getElementById('themeLabel');
+        if (newTheme === 'dark') {
+            icon.textContent = '☀️';
+            label.textContent = 'Claro';
+        } else {
+            icon.textContent = '🌙';
+            label.textContent = 'Escuro';
+        }
+    }
+</script>
+
 </body>
 </html>

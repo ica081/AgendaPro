@@ -2,119 +2,201 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações - AgendaPro</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; }
-        h2, h3 { margin: 10px 0; }
+        /* Estilos específicos para esta página (não conflitam com o global) */
         .day-config {
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            background: #f9f9f9;
+            background: #f8fafc;
+            border: 1px solid #e9edf2;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
         }
-        .day-config h4 { margin: 0 0 10px 0; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-        .day-config h4 label { font-weight: normal; }
+        .day-config h4 {
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .day-config h4 label {
+            font-weight: normal;
+        }
         .period {
             display: flex;
             gap: 10px;
             align-items: center;
-            margin: 5px 0;
+            margin: 6px 0;
             flex-wrap: wrap;
         }
-        .period input[type="time"] { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 6px 14px; margin: 2px; cursor: pointer; border: none; border-radius: 4px; }
-        .btn-add { background: #4CAF50; color: white; }
-        .btn-add:hover { background: #45a049; }
-        .btn-remove { background: #f44336; color: white; }
-        .btn-remove:hover { background: #d32f2f; }
-        .btn-save { background: #2196F3; color: white; padding: 12px 24px; font-size: 16px; }
-        .btn-save:hover { background: #1976D2; }
-        .btn-back { background: #999; color: white; padding: 12px 24px; font-size: 16px; }
-        .btn-back:hover { background: #777; }
-        .btn-test { background: #FF9800; color: white; padding: 12px 24px; font-size: 16px; }
-        .btn-test:hover { background: #F57C00; }
-        .exception-row { display: flex; gap: 10px; align-items: center; margin: 5px 0; flex-wrap: wrap; }
-        .exception-row input, .exception-row select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-        .step-container { margin-bottom: 20px; background: #f0f0f0; padding: 15px; border-radius: 6px; }
-        .step-container label { font-weight: bold; margin-right: 10px; }
-        .step-container input { padding: 6px; width: 80px; border: 1px solid #ccc; border-radius: 4px; }
-        .rules-container { margin: 15px 0; padding: 15px; background: #e3f2fd; border-radius: 6px; }
-        .rules-container h4 { margin: 0 0 10px 0; }
-        .rules-container label { display: inline-block; margin: 5px 0; }
-        .rules-container input[type="number"] { padding: 4px; width: 70px; border: 1px solid #ccc; border-radius: 4px; }
-        .rules-container .hint { font-size: 12px; color: #666; margin-left: 5px; }
-        .reminder-container { margin: 15px 0; padding: 15px; background: #fff3e0; border-radius: 6px; border: 1px solid #ffb74d; }
-        .reminder-container h4 { margin: 0 0 10px 0; }
-        .reminder-container label { display: inline-block; margin: 5px 0; }
-        .reminder-container select, .reminder-container input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-        .message { padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
-        .message.success { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-        .message.error { display: block; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-        .slot-badge { background: #4CAF50; color: white; padding: 4px 12px; border-radius: 12px; display: inline-block; margin: 4px; }
-        #slots-display { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .test-container { margin-top: 20px; background: #e3f2fd; padding: 15px; border-radius: 6px; }
-        .reminder-config { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin: 10px 0; }
-        .reminder-config select, .reminder-config input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-        .reminder-config label { font-weight: normal; }
+        .period input[type="time"] {
+            padding: 6px 10px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+            background: white;
+        }
+        .exception-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 6px 0;
+            flex-wrap: wrap;
+        }
+        .exception-row input,
+        .exception-row select {
+            padding: 6px 10px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+            background: white;
+        }
+        .step-container {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .step-container label {
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        .step-container input {
+            padding: 6px 10px;
+            width: 80px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+        }
+        .rules-container {
+            background: #e3f2fd;
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+        .rules-container h4 {
+            margin: 0 0 10px 0;
+        }
+        .rules-container label {
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .rules-container input[type="number"] {
+            padding: 4px 8px;
+            width: 70px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+        }
+        .rules-container .hint {
+            font-size: 12px;
+            color: #64748b;
+            margin-left: 5px;
+        }
+        .reminder-container {
+            background: #fff3e0;
+            border: 1px solid #ffb74d;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .reminder-container h4 {
+            margin: 0 0 10px 0;
+        }
+        .reminder-container label {
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .reminder-container select,
+        .reminder-container input {
+            padding: 6px 10px;
+            border: 1px solid #d1d9e6;
+            border-radius: 6px;
+            background: white;
+        }
+        .reminder-config {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .reminder-config label {
+            font-weight: normal;
+        }
+        .slot-badge {
+            background: #22c55e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 4px;
+            font-size: 14px;
+        }
+        #slots-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <h2>⚙️ Configurações</h2>
-    <p>Defina os horários de funcionamento, regras de agendamento e lembretes por e-mail.</p>
+    <div class="container">
+        <h2>⚙️ Configurações</h2>
+        <p class="text-muted">Defina os horários de funcionamento, regras de agendamento e lembretes por e-mail.</p>
 
-    <div id="message" class="message"></div>
+        <div id="message" class="alert"></div>
 
-    <!-- ===== SEÇÃO DE LEMBRETES ===== -->
-    <div class="reminder-container">
-        <h4>📧 Lembretes por E-mail</h4>
-        <p style="font-size:13px; color:#666; margin:0 0 10px 0;">Envie lembretes automáticos para os clientes antes do agendamento.</p>
-        <div class="reminder-config">
-            <label>
-                <input type="checkbox" id="reminderEnabled"> Ativar lembretes
-            </label>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                <label>Enviar</label>
-                <input type="number" id="reminderOffset" value="1" min="1" style="width:60px;">
-                <select id="reminderUnit">
-                    <option value="Hours">Hora(s)</option>
-                    <option value="Days">Dia(s)</option>
-                </select>
-                <label style="margin-left:5px;">antes do serviço</label>
-                <select id="reminderSendTime" style="width:auto;">
-                    <option value="BeforeAppointment">Antes do horário</option>
-                    <option value="DayOfAppointment">Na meia-noite do dia</option>
-                </select>
+        <!-- ===== SEÇÃO DE LEMBRETES ===== -->
+        <div class="reminder-container">
+            <h4>📧 Lembretes por E-mail</h4>
+            <p class="text-muted" style="font-size:14px;">Envie lembretes automáticos para os clientes antes do agendamento.</p>
+            <div class="reminder-config">
+                <label>
+                    <input type="checkbox" id="reminderEnabled"> Ativar lembretes
+                </label>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <label>Enviar</label>
+                    <input type="number" id="reminderOffset" value="1" min="1" style="width:60px;">
+                    <select id="reminderUnit">
+                        <option value="Hours">Hora(s)</option>
+                        <option value="Days">Dia(s)</option>
+                    </select>
+                    <label style="margin-left:5px;">antes do serviço</label>
+                    <select id="reminderSendTime" style="width:auto;">
+                        <option value="BeforeAppointment">Antes do horário</option>
+                        <option value="DayOfAppointment">Na meia-noite do dia</option>
+                    </select>
+                </div>
             </div>
+            <p style="font-size:12px; color:#94a3b8; margin:5px 0 0 0;">
+                <strong>Exemplos:</strong> 
+                "1 Hora(s) antes do serviço" → envia 1 hora antes. 
+                "Na meia-noite do dia" → envia às 00:00 do dia do agendamento.
+            </p>
         </div>
-        <p style="font-size:12px; color:#999; margin:5px 0 0 0;">
-            <strong>Exemplos:</strong> 
-            "1 Hora(s) antes do serviço" → envia 1 hora antes. 
-            "Na meia-noite do dia" → envia às 00:00 do dia do agendamento.
-        </p>
-    </div>
 
-    <!-- ===== HORÁRIOS ===== -->
-    <h3 style="margin-top:20px;">📅 Horário de Funcionamento</h3>
-    <p style="font-size:14px; color:#666;">Configure os períodos de funcionamento para cada dia da semana. <strong>Não há horários padrão</strong> – você deve configurar cada dia manualmente.</p>
+        <!-- ===== HORÁRIOS ===== -->
+        <h3 style="margin-top:20px;">📅 Horário de Funcionamento</h3>
+        <p class="text-muted" style="font-size:14px;">Configure os períodos de funcionamento para cada dia da semana. <strong>Não há horários padrão</strong> – você deve configurar cada dia manualmente.</p>
 
-    <div id="settings-container"></div>
+        <div id="settings-container"></div>
 
-    <!-- ===== BOTÕES ===== -->
-    <div style="margin-top:20px; display: flex; gap: 10px; flex-wrap: wrap;">
-        <button class="btn-save" onclick="saveSettings()">💾 Salvar</button>
-        <button class="btn-test" onclick="testSlots()">🧪 Testar Slots</button>
-        <button class="btn-back" onclick="window.location.href='dashboard-empresa.html'">⬅️ Voltar</button>
-    </div>
+        <!-- ===== BOTÕES ===== -->
+        <div class="flex" style="margin-top:20px;">
+            <button class="btn btn-primary" onclick="saveSettings()">💾 Salvar</button>
+            <button class="btn btn-outline" onclick="testSlots()">🧪 Testar Slots</button>
+            <button class="btn btn-outline" onclick="window.location.href='dashboard-empresa.html'">⬅️ Voltar</button>
+        </div>
 
-    <!-- ===== RESULTADO DO TESTE ===== -->
-    <div id="test-result" style="display:none; margin-top: 20px; background: #fff3e0; padding: 15px; border-radius: 6px; border: 1px solid #FF9800;">
-        <h4>Slots gerados para hoje:</h4>
-        <div id="slots-display"></div>
+        <!-- ===== RESULTADO DO TESTE ===== -->
+        <div id="test-result" style="display:none; margin-top: 20px; background: #fff3e0; padding: 15px; border-radius: 12px; border: 1px solid #ffb74d;">
+            <h4>Slots gerados para hoje:</h4>
+            <div id="slots-display"></div>
+        </div>
     </div>
 
     <script>
+        // (mesmo JavaScript, sem alterações)
         const API_URL = "http://localhost:5182";
         const days = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
@@ -127,7 +209,7 @@
         function showMessage(text, type) {
             const el = document.getElementById('message');
             el.textContent = text;
-            el.className = 'message ' + type;
+            el.className = 'alert ' + type;
             el.style.display = 'block';
             setTimeout(() => { el.style.display = 'none'; }, 5000);
         }
@@ -154,7 +236,6 @@
                     allowSameDayMultiple: true
                 };
 
-                // Carregar configurações de lembrete
                 currentReminder = company.reminderSettings || {
                     enabled: false,
                     offsetValue: 1,
@@ -162,13 +243,11 @@
                     sendTime: "BeforeAppointment"
                 };
 
-                // Preencher os campos de lembrete
                 document.getElementById('reminderEnabled').checked = currentReminder.enabled || false;
                 document.getElementById('reminderOffset').value = currentReminder.offsetValue || 1;
                 document.getElementById('reminderUnit').value = currentReminder.offsetUnit || "Hours";
                 document.getElementById('reminderSendTime').value = currentReminder.sendTime || "BeforeAppointment";
 
-                // Preencher dias da semana
                 for (let i = 0; i < 7; i++) {
                     if (!currentSchedule.days[i]) {
                         currentSchedule.days[i] = { isClosed: true, periods: [] };
@@ -186,8 +265,8 @@
             const container = document.getElementById('settings-container');
             let html = `<div class="step-container">
                 <label>⏱️ Passo entre horários (minutos):</label>
-                <input type="number" id="stepInput" value="${currentSchedule.stepMinutes || 30}" min="10" step="5" style="width:80px;">
-                <span style="margin-left:15px; color:#666;">Ex: 30, 40, 60</span>
+                <input type="number" id="stepInput" value="${currentSchedule.stepMinutes || 30}" min="10" step="5">
+                <span style="margin-left:15px; color:#64748b;">Ex: 30, 40, 60</span>
             </div>`;
 
             html += `<div class="rules-container">
@@ -205,7 +284,7 @@
                     <input type="checkbox" id="allowSameDay" ${currentSchedule.allowSameDayMultiple !== false ? 'checked' : ''}>
                     Permitir múltiplos agendamentos no mesmo dia
                 </label>
-                <div style="margin-top:8px; font-size:13px; color:#555; background:#fff; padding:8px; border-radius:4px;">
+                <div style="margin-top:8px; font-size:13px; color:#475569; background:#fff; padding:8px; border-radius:6px;">
                     <strong>Como funciona:</strong>
                     <ul style="margin:4px 0 0 20px; padding:0;">
                         <li>Desmarque "Permitir múltiplos" → cada cliente só pode ter 1 agendamento ativo.</li>
@@ -238,11 +317,11 @@
                                 <input type="time" value="${p.end || ''}" 
                                        onchange="updatePeriod(${i}, ${idx}, 'end', this.value)"
                                        oninput="updatePeriod(${i}, ${idx}, 'end', this.value)">
-                                <button class="btn-remove" onclick="removePeriod(${i}, ${idx})">✖</button>
+                                <button class="btn btn-danger btn-sm" onclick="removePeriod(${i}, ${idx})">✖</button>
                             </div>
                         `).join('')}
                     </div>
-                    <button class="btn-add" onclick="addPeriod(${i})">+ Adicionar período</button>
+                    <button class="btn btn-success btn-sm" onclick="addPeriod(${i})">+ Adicionar período</button>
                 </div>`;
             }
 
@@ -250,7 +329,7 @@
             const exceptions = currentSchedule.exceptions || {};
             const exKeys = Object.keys(exceptions);
             if (exKeys.length === 0) {
-                html += `<p style="color:#999;">Nenhuma exceção cadastrada.</p>`;
+                html += `<p class="text-muted">Nenhuma exceção cadastrada.</p>`;
             } else {
                 exKeys.forEach(dateKey => {
                     const ex = exceptions[dateKey];
@@ -258,7 +337,7 @@
                         <input type="date" value="${dateKey}" disabled>
                         <label>Fechado: <input type="checkbox" ${ex.isClosed ? 'checked' : ''} disabled></label>
                         <span>Períodos: ${ex.periods.map(p => p.start + '-' + p.end).join(', ') || 'Nenhum'}</span>
-                        <button class="btn-remove" onclick="removeException('${dateKey}')">✖</button>
+                        <button class="btn btn-danger btn-sm" onclick="removeException('${dateKey}')">✖</button>
                     </div>`;
                 });
             }
@@ -268,7 +347,7 @@
                     <option value="closed">Fechado</option>
                     <option value="custom">Personalizado (copiar dia)</option>
                 </select>
-                <button class="btn-add" onclick="addException()">+ Adicionar</button>
+                <button class="btn btn-primary btn-sm" onclick="addException()">+ Adicionar</button>
             </div>`;
 
             container.innerHTML = html;
@@ -339,7 +418,6 @@
         };
 
         async function saveSettings() {
-            // Coletar dados do formulário
             const stepInput = document.getElementById('stepInput');
             if (stepInput) {
                 currentSchedule.stepMinutes = parseInt(stepInput.value) || 30;
@@ -358,14 +436,12 @@
                 currentSchedule.allowSameDayMultiple = allowSameDay.checked;
             }
 
-            // Limpar períodos de dias fechados
             for (let i = 0; i < 7; i++) {
                 if (currentSchedule.days[i] && currentSchedule.days[i].isClosed) {
                     currentSchedule.days[i].periods = [];
                 }
             }
 
-            // Coletar dados de lembrete
             const reminderEnabled = document.getElementById('reminderEnabled').checked;
             const reminderOffset = parseInt(document.getElementById('reminderOffset').value) || 1;
             const reminderUnit = document.getElementById('reminderUnit').value;
@@ -426,7 +502,7 @@
                 const slots = await resp.json();
                 const display = document.getElementById('slots-display');
                 display.innerHTML = slots.length === 0 ?
-                    '<p style="color:#999;">Nenhum slot disponível para hoje.</p>' :
+                    '<p class="text-muted">Nenhum slot disponível para hoje.</p>' :
                     slots.map(s => `<span class="slot-badge">${s}</span>`).join(' ');
                 document.getElementById('test-result').style.display = 'block';
                 if (slots.length > 0) {

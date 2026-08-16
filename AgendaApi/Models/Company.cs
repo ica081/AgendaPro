@@ -9,6 +9,7 @@ public class Company
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
+    public string? Email { get; set; }  // NOVO: e-mail da empresa para notificações
     public TimeSpan? OpeningTime { get; set; }
     public TimeSpan? ClosingTime { get; set; }
     public string? WorkScheduleJson { get; set; }
@@ -20,7 +21,6 @@ public class Company
         set => WorkScheduleJson = JsonSerializer.Serialize(value);
     }
 
-    // NOVO: Configurações de lembrete
     public string? ReminderSettingsJson { get; set; }
 
     [NotMapped]

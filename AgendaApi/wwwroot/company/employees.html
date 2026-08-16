@@ -2,41 +2,127 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Funcionários</title>
-    <link rel="stylesheet" href="../css/style.css">
-    <style>
-        body { font-family: Arial; padding: 20px; max-width: 700px; margin: 0 auto; }
-        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; }
-        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .employee-item { padding: 10px; border-bottom: 1px solid #ccc; display: flex; align-items: center; gap: 15px; }
-        .employee-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-        .actions { display: flex; gap: 5px; }
-        .actions button { padding: 5px 10px; font-size: 12px; width: auto; }
-        .edit-btn { background: #2196F3; }
-        .delete-btn { background: #f44336; }
-        #form-container { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background: #f9f9f9; }
-        #form-container h3 { margin-top: 0; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funcionários - AgendaPro</title>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <h2>Gerenciar Funcionários</h2>
 
-    <button onclick="window.location.href='dashboard-empresa.html'">Voltar ao Dashboard</button>
+<div class="container">
+    <h2>👥 Gerenciar Funcionários</h2>
+    <p class="text-muted">Cadastre e gerencie os profissionais da sua empresa.</p>
 
-    <div id="form-container">
+    <div class="flex mt-1 mb-2">
+        <button class="btn btn-outline" onclick="window.location.href='dashboard-empresa.html'">⬅️ Voltar ao Dashboard</button>
+    </div>
+
+    <!-- Formulário -->
+    <div class="card" id="form-container">
         <h3 id="form-title">Novo Funcionário</h3>
         <input type="hidden" id="edit-id">
-        <input type="text" id="name" placeholder="Nome completo">
-        <input type="text" id="specialty" placeholder="Especialidade (ex: Cabelereiro)">
-        <input type="text" id="photoUrl" placeholder="URL da foto (opcional)">
-        <button id="save-btn" onclick="saveEmployee()">Salvar</button>
-        <button onclick="cancelEdit()" style="background: #999;">Cancelar</button>
+        <div class="form-group">
+            <label for="name">Nome completo</label>
+            <input type="text" id="name" placeholder="Ex: João Silva">
+        </div>
+        <div class="form-group">
+            <label for="specialty">Especialidade</label>
+            <input type="text" id="specialty" placeholder="Ex: Cabeleireiro">
+        </div>
+        <div class="form-group">
+            <label for="photoUrl">URL da foto (opcional)</label>
+            <input type="text" id="photoUrl" placeholder="https://exemplo.com/foto.jpg">
+        </div>
+        <div class="flex">
+            <button class="btn btn-primary" id="save-btn" onclick="saveEmployee()">💾 Salvar</button>
+            <button class="btn btn-outline" onclick="cancelEdit()" style="background:#999; color:white;">Cancelar</button>
+        </div>
     </div>
+
+    <hr>
 
     <h3>Lista de Funcionários</h3>
     <div id="employee-list"></div>
+</div>
 
-    <script src="/js/employees.js"></script>
+<!-- Estilos adicionais para a lista de funcionários (pois o CSS unificado não tem isso) -->
+<style>
+    /* Lista de funcionários */
+    #employee-list {
+        margin-top: 12px;
+    }
+    .employee-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e9edf2;
+        background: #ffffff;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        transition: background 0.15s ease;
+    }
+    .employee-item:hover {
+        background: #f8fafc;
+    }
+    .employee-item img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #e9edf2;
+    }
+    .employee-info {
+        flex: 1;
+    }
+    .employee-name {
+        font-weight: 600;
+        color: #0f172a;
+    }
+    .employee-specialty {
+        font-size: 14px;
+        color: #64748b;
+    }
+    .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .actions button {
+        padding: 6px 14px;
+        font-size: 13px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .edit-btn {
+        background: #1e88e5;
+        color: white;
+    }
+    .edit-btn:hover {
+        background: #1565c0;
+    }
+    .delete-btn {
+        background: #ef4444;
+        color: white;
+    }
+    .delete-btn:hover {
+        background: #dc2626;
+    }
+
+    /* Ajuste para o formulário */
+    #form-container {
+        background: #ffffff;
+        border: 1px solid #e9edf2;
+    }
+    #form-container input {
+        width: 100%;
+    }
+    #form-container .flex {
+        margin-top: 6px;
+    }
+</style>
+
+<script src="/js/employees.js"></script>
 </body>
 </html>

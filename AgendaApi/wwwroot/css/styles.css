@@ -1,38 +1,6 @@
 /* ========================================
-   RESET & BASE (com suporte a dark mode)
+   RESET & BASE - Glassmorphism + Gradientes
    ======================================== */
-:root {
-  --bg-body: #f5f7fa;
-  --text-color: #1e293b;
-  --card-bg: #ffffff;
-  --border-color: #e5e7eb;
-  --input-bg: #ffffff;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --primary: #1e88e5;
-  --primary-hover: #1565c0;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --muted: #64748b;
-  --light-bg: #f8fafc;
-  --hover-bg: #f1f5f9;
-}
-
-[data-theme="dark"] {
-  --bg-body: #0f172a;
-  --text-color: #e2e8f0;
-  --card-bg: #1e293b;
-  --border-color: #334155;
-  --input-bg: #1e293b;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --primary: #3b82f6;
-  --primary-hover: #60a5fa;
-  --success: #4ade80;
-  --danger: #f87171;
-  --muted: #94a3b8;
-  --light-bg: #1e293b;
-  --hover-bg: #2d3748;
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -40,7 +8,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background: var(--bg-body);
   color: var(--text-color);
   line-height: 1.6;
@@ -49,37 +17,44 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  transition: background 0.3s, color 0.3s;
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
 a {
   color: var(--primary);
   text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
 }
 a:hover {
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
 /* ========================================
-   CONTAINER PRINCIPAL
+   CONTAINER PRINCIPAL (efeito vidro)
    ======================================== */
 .container {
   max-width: 900px;
   width: 100%;
   background: var(--card-bg);
-  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 24px;
   padding: 32px 28px;
   box-shadow: var(--shadow);
-  transition: background 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--border-color);
+  transition: background 0.4s, box-shadow 0.4s, border-color 0.4s;
 }
 
 /* ========================================
    TIPOGRAFIA
    ======================================== */
 h1, h2, h3, h4 {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-color);
   margin-bottom: 0.5em;
+  letter-spacing: -0.02em;
 }
 h1 { font-size: 28px; }
 h2 { font-size: 24px; }
@@ -89,80 +64,91 @@ h4 { font-size: 18px; }
 p {
   margin-bottom: 1em;
   color: var(--text-color);
+  opacity: 0.85;
 }
 
 /* ========================================
-   CARTÕES / CARDS
+   CARTÕES / CARDS (vidro)
    ======================================== */
 .card {
   background: var(--card-bg);
-  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
   padding: 20px 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--border-color);
-  transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
 }
 .card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 
 /* ========================================
-   BOTÕES
+   BOTÕES (gradiente e vidro)
    ======================================== */
 .btn {
   display: inline-block;
   padding: 10px 24px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  transition: all 0.25s ease;
   background: var(--hover-bg);
   color: var(--text-color);
   text-decoration: none;
   text-align: center;
+  backdrop-filter: blur(4px);
 }
-
 .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: var(--shadow-hover);
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
+  border: none;
 }
 .btn-primary:hover {
-  background: var(--primary-hover);
+  background: linear-gradient(135deg, var(--primary-hover), var(--primary));
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
 }
 
 .btn-success {
-  background: var(--success);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--success), #16a34a);
+  color: #fff;
 }
 .btn-success:hover {
-  background: #16a34a;
+  background: linear-gradient(135deg, #16a34a, var(--success));
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
 }
 
 .btn-danger {
-  background: var(--danger);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--danger), #dc2626);
+  color: #fff;
 }
 .btn-danger:hover {
-  background: #dc2626;
+  background: linear-gradient(135deg, #dc2626, var(--danger));
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
 }
 
 .btn-outline {
   background: transparent;
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   color: var(--text-color);
+  backdrop-filter: blur(4px);
 }
 .btn-outline:hover {
   background: var(--hover-bg);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .btn-sm {
@@ -179,29 +165,31 @@ p {
 }
 
 /* ========================================
-   FORMULÁRIOS
+   FORMULÁRIOS (vidro)
    ======================================== */
 .form-group {
   margin-bottom: 18px;
 }
 .form-group label {
   display: block;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
   color: var(--text-color);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
 }
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 15px;
   background: var(--input-bg);
   color: var(--text-color);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(4px);
+  transition: all 0.25s ease;
   font-family: inherit;
 }
 .form-group input:focus,
@@ -209,58 +197,53 @@ p {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+  background: var(--input-bg);
 }
 .form-group input::placeholder {
   color: var(--muted);
+  opacity: 0.7;
+}
+.form-group input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  margin-right: 8px;
+  accent-color: var(--primary);
 }
 
 /* ========================================
-   ALERTAS
+   ALERTAS (vidro)
    ======================================== */
 .alert {
   padding: 14px 18px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 18px;
   display: none;
   font-weight: 500;
+  backdrop-filter: blur(8px);
+  border: 1px solid transparent;
 }
 .alert.error {
   display: block;
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-[data-theme="dark"] .alert.error {
-  background: #7f1d1d;
-  color: #fca5a5;
-  border-color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 .alert.success {
   display: block;
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-[data-theme="dark"] .alert.success {
-  background: #14532d;
-  color: #86efac;
-  border-color: #166534;
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success);
 }
 .alert.info {
   display: block;
-  background: #e0f2fe;
-  color: #075985;
-  border: 1px solid #bae6fd;
-}
-[data-theme="dark"] .alert.info {
-  background: #0c4a6e;
-  color: #7dd3fc;
-  border-color: #075985;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 /* ========================================
-   TABELAS
+   TABELAS (vidro)
    ======================================== */
 .table {
   width: 100%;
@@ -277,6 +260,7 @@ p {
   background: var(--light-bg);
   font-weight: 600;
   color: var(--text-color);
+  backdrop-filter: blur(4px);
 }
 .table tr:hover td {
   background: var(--hover-bg);
@@ -293,42 +277,43 @@ p {
 }
 
 .slot {
-  padding: 8px 4px;
+  padding: 10px 4px;
   background: var(--light-bg);
+  backdrop-filter: blur(4px);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   text-align: center;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: all 0.2s ease;
   color: var(--text-color);
 }
 .slot:hover:not(.occupied) {
   background: var(--hover-bg);
+  transform: scale(1.04);
+  border-color: var(--primary);
 }
 .slot.occupied {
-  background: #fee2e2;
-  border-color: #fca5a5;
+  background: var(--danger-bg);
+  border-color: var(--danger);
   cursor: not-allowed;
-  opacity: 0.7;
-}
-[data-theme="dark"] .slot.occupied {
-  background: #7f1d1d;
-  border-color: #991b1b;
+  opacity: 0.6;
 }
 .slot.selected {
-  background: var(--primary);
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
   border-color: var(--primary);
+  transform: scale(1.04);
 }
 
 /* ========================================
-   CALENDÁRIO
+   CALENDÁRIO (vidro)
    ======================================== */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 20px;
 }
 .calendar-grid .day-name {
@@ -337,28 +322,34 @@ p {
   font-size: 13px;
   color: var(--muted);
   padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 .calendar-grid .day-cell {
   text-align: center;
-  padding: 8px 0;
-  border-radius: 8px;
+  padding: 10px 0;
+  border-radius: 12px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: all 0.2s ease;
   background: var(--light-bg);
   border: 1px solid transparent;
   color: var(--text-color);
 }
 .calendar-grid .day-cell:hover:not(.empty):not(.disabled) {
   background: var(--hover-bg);
-}
-.calendar-grid .day-cell.selected {
-  background: var(--primary);
-  color: white;
+  transform: scale(1.05);
   border-color: var(--primary);
 }
+.calendar-grid .day-cell.selected {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
 .calendar-grid .day-cell.has-slots {
-  border-color: #93c5fd;
+  border-color: var(--primary);
   font-weight: 600;
 }
 .calendar-grid .day-cell.empty {
@@ -368,6 +359,7 @@ p {
 .calendar-grid .day-cell.disabled {
   color: var(--muted);
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* ========================================
@@ -377,6 +369,7 @@ p {
   text-align: center;
   color: var(--muted);
   padding: 20px 0;
+  font-style: italic;
 }
 
 /* ========================================
@@ -384,16 +377,17 @@ p {
    ======================================== */
 .badge {
   display: inline-block;
-  background: var(--primary);
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
   border-radius: 50%;
   font-size: 10px;
-  padding: 1px 5px;
+  padding: 2px 8px;
   margin-left: 4px;
+  font-weight: 600;
 }
 
 /* ========================================
-   LINKS DO MÊS
+   LINKS DO MÊS (vidro)
    ======================================== */
 .month-nav {
   display: flex;
@@ -403,25 +397,31 @@ p {
 }
 .month-nav button {
   background: var(--hover-bg);
-  border: none;
-  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
   padding: 8px 18px;
   font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   color: var(--text-color);
 }
 .month-nav button:hover {
-  background: var(--border-color);
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.05);
 }
 .month-nav .month-label {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 18px;
   color: var(--text-color);
+  letter-spacing: -0.02em;
 }
 
 /* ========================================
-   MISCELÂNEA (úteis)
+   MISCELÂNEA
    ======================================== */
 .text-center { text-align: center; }
 .text-muted { color: var(--muted); }
@@ -437,7 +437,52 @@ p {
 hr {
   border: none;
   border-top: 1px solid var(--border-color);
-  margin: 20px 0;
+  margin: 24px 0;
+}
+
+/* ========================================
+   BOTÃO FLUTUANTE DE TEMA (vidro)
+   ======================================== */
+.theme-float {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 40px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+.theme-float:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-hover);
+}
+.theme-float .icon {
+  font-size: 20px;
+}
+.theme-float .label {
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .theme-float {
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 14px;
+  }
+  .theme-float .label {
+    display: none;
+  }
 }
 
 /* ========================================
@@ -460,4 +505,67 @@ hr {
     font-size: 13px;
     padding: 8px 16px;
   }
+}
+
+/* ========================================
+   CORREÇÃO PARA ÍCONES DE INPUTS NO MODO ESCURO
+   ======================================== */
+[data-theme="dark"] input[type="time"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="datetime-local"] {
+  color-scheme: dark;
+}
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(10);
+}
+
+/* ========================================
+   VARIÁVEIS - TEMAS (Claro e Escuro)
+   ======================================== */
+:root {
+  --bg-body: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%);
+  --text-color: #0f172a;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(255, 255, 255, 0.3);
+  --input-bg: rgba(255, 255, 255, 0.8);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --primary: #4f46e5;
+  --primary-hover: #7c3aed;
+  --primary-light: #e0e7ff;
+  --success: #22c55e;
+  --success-bg: #dcfce7;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --warning: #f59e0b;
+  --muted: #64748b;
+  --light-bg: rgba(241, 245, 249, 0.6);
+  --hover-bg: rgba(241, 245, 249, 0.8);
+  --text-on-primary: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg-body: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  --text-color: #e2e8f0;
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(30, 41, 59, 0.8);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --primary: #818cf8;
+  --primary-hover: #a5b4fc;
+  --primary-light: #1e1b4b;
+  --success: #4ade80;
+  --success-bg: #14532d;
+  --danger: #f87171;
+  --danger-bg: #7f1d1d;
+  --warning: #fbbf24;
+  --muted: #94a3b8;
+  --light-bg: rgba(30, 41, 59, 0.6);
+  --hover-bg: rgba(51, 65, 85, 0.8);
+  --text-on-primary: #0f172a;
 }

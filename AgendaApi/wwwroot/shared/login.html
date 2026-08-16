@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AgendaPro</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* Ajuste para checkbox (label) no modo escuro */
+        .form-group label {
+            color: var(--text-color);
+        }
+        .form-group input[type="checkbox"] {
+            accent-color: var(--primary);
+        }
+        a {
+            color: var(--primary);
+        }
+        a:hover {
+            color: var(--primary-hover);
+        }
+    </style>
 </head>
 <body>
 
@@ -34,12 +49,12 @@
 </div>
 
 <script>
-    // A função togglePassword já está no /js/auth.js, mas se não estiver, adicione:
     function togglePassword() {
         const pwd = document.getElementById('password');
         pwd.type = pwd.type === 'password' ? 'text' : 'password';
     }
 </script>
 <script src="/js/auth.js?v=3"></script>
+<script src="/js/theme.js"></script>
 </body>
 </html>

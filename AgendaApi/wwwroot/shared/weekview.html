@@ -6,7 +6,7 @@
     <title>Agenda Semanal - AgendaPro</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        /* ===== ESTILOS ESPECÍFICOS DA AGENDA SEMANAL ===== */
+        /* ===== ESTILOS ESPECÍFICOS DA AGENDA SEMANAL (adaptados para dark mode) ===== */
         .week-container {
             margin-top: 20px;
             overflow-x: auto;
@@ -17,27 +17,27 @@
             font-size: 14px;
         }
         th, td {
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--border-color);
             padding: 8px 6px;
             text-align: left;
             vertical-align: top;
         }
         th {
-            background: #f1f5f9;
+            background: var(--light-bg);
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-color);
             text-align: center;
         }
         .hour-cell {
             width: 60px;
-            background: #f8fafc;
+            background: var(--light-bg);
             font-weight: 600;
             text-align: center;
-            color: #334155;
+            color: var(--text-color);
         }
         .appointment {
-            background: #22c55e;
-            color: white;
+            background: var(--success);
+            color: var(--text-on-primary);
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 12px;
@@ -64,26 +64,43 @@
         }
         .week-nav label {
             font-weight: 500;
-            color: #0f172a;
+            color: var(--text-color);
         }
         .week-nav input[type="date"] {
             padding: 8px 12px;
-            border: 1px solid #d1d9e6;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 14px;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-color);
             font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
         .week-nav input[type="date"]:focus {
             outline: none;
-            border-color: #1e88e5;
-            box-shadow: 0 0 0 3px rgba(30,136,229,0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15);
+        }
+        .week-nav input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0);
+        }
+        [data-theme="dark"] .week-nav input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(10);
         }
         .week-nav .btn-today {
-            background: #6b7280;
+            background: var(--muted);
+            color: var(--text-on-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
         .week-nav .btn-today:hover {
             background: #4b5563;
+        }
+        [data-theme="dark"] .week-nav .btn-today:hover {
+            background: #6b7280;
         }
 
         /* Responsividade */
@@ -116,7 +133,7 @@
         <label for="weekStartDate">Início da semana:</label>
         <input type="date" id="weekStartDate" onchange="loadWeekFromDate()">
         <button class="btn btn-primary" onclick="nextWeek()">Próxima semana ▶</button>
-        <button class="btn btn-today" onclick="loadCurrentWeek()" style="background:#6b7280; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer;">📅 Semana atual</button>
+        <button class="btn-today" onclick="loadCurrentWeek()">📅 Semana atual</button>
     </div>
 
     <div id="week-container" class="week-container"></div>
@@ -140,5 +157,6 @@
 </script>
 
 <script src="/js/weekview.js?v=5"></script>
+<script src="/js/theme.js"></script>
 </body>
 </html>

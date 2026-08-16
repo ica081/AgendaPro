@@ -6,10 +6,34 @@
     <title>Configurações - AgendaPro</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        /* Estilos específicos para esta página (não conflitam com o global) */
+        /* ===== ESTILOS ESPECÍFICOS (adaptados para dark mode) ===== */
+        .slot-badge {
+            background: var(--success);
+            color: var(--text-on-primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 4px;
+            font-size: 14px;
+        }
+        #test-result {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .reminder-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
         .day-config {
-            background: #f8fafc;
-            border: 1px solid #e9edf2;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 16px;
@@ -20,502 +44,462 @@
             align-items: center;
             gap: 15px;
             flex-wrap: wrap;
+            color: var(--text-color);
         }
         .day-config h4 label {
             font-weight: normal;
+            color: var(--text-color);
         }
-        .period {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin: 6px 0;
-            flex-wrap: wrap;
-        }
-        .period input[type="time"] {
+        .period-input {
             padding: 6px 10px;
-            border: 1px solid #d1d9e6;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+        /* FORÇAR CORES NO SELECTOR DE HORÁRIO */
+        input[type="time"],
+        input[type="date"],
+        input[type="datetime-local"] {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-family: inherit;
+        }
+        /* Para navegadores baseados em WebKit (Chrome, Edge, etc) */
+        input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: var(--picker-icon-filter, invert(0));
+        }
+        /* Modo escuro: inverter o ícone do seletor */
+        [data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+        [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+        [data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        /* Para Firefox */
+        [data-theme="dark"] input[type="time"],
+        [data-theme="dark"] input[type="date"],
+        [data-theme="dark"] input[type="datetime-local"] {
+            color-scheme: dark;
+        }
+        .rules-box {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-color);
+            background: var(--card-bg);
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
         }
         .exception-row {
             display: flex;
-            gap: 10px;
             align-items: center;
+            gap: 10px;
             margin: 6px 0;
             flex-wrap: wrap;
         }
-        .exception-row input,
-        .exception-row select {
+        .exception-row input:disabled {
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+        .exception-row select,
+        .exception-row input {
             padding: 6px 10px;
-            border: 1px solid #d1d9e6;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            background: white;
+            background: var(--input-bg);
+            color: var(--text-color);
         }
-        .step-container {
-            background: #f1f5f9;
-            padding: 16px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-        .step-container label {
-            font-weight: 600;
-            margin-right: 10px;
-        }
-        .step-container input {
-            padding: 6px 10px;
-            width: 80px;
-            border: 1px solid #d1d9e6;
-            border-radius: 6px;
-        }
-        .rules-container {
-            background: #e3f2fd;
-            padding: 16px;
-            border-radius: 12px;
-            margin: 16px 0;
-        }
-        .rules-container h4 {
-            margin: 0 0 10px 0;
-        }
-        .rules-container label {
-            display: inline-block;
-            margin: 5px 0;
-        }
-        .rules-container input[type="number"] {
-            padding: 4px 8px;
-            width: 70px;
-            border: 1px solid #d1d9e6;
-            border-radius: 6px;
-        }
-        .rules-container .hint {
-            font-size: 12px;
-            color: #64748b;
-            margin-left: 5px;
-        }
-        .reminder-container {
-            background: #fff3e0;
-            border: 1px solid #ffb74d;
-            border-radius: 12px;
-            padding: 16px;
-            margin: 16px 0;
-        }
-        .reminder-container h4 {
-            margin: 0 0 10px 0;
-        }
-        .reminder-container label {
-            display: inline-block;
-            margin: 5px 0;
-        }
-        .reminder-container select,
-        .reminder-container input {
-            padding: 6px 10px;
-            border: 1px solid #d1d9e6;
-            border-radius: 6px;
-            background: white;
-        }
-        .reminder-config {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            margin: 10px 0;
-        }
-        .reminder-config label {
-            font-weight: normal;
-        }
-        .slot-badge {
-            background: #22c55e;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            display: inline-block;
-            margin: 4px;
-            font-size: 14px;
-        }
-        #slots-display {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
+        /* Ajuste no seletor de data desabilitado */
+        .exception-row input[type="date"]:disabled {
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>⚙️ Configurações</h2>
-        <p class="text-muted">Defina os horários de funcionamento, regras de agendamento e lembretes por e-mail.</p>
 
-        <div id="message" class="alert"></div>
+<div class="container">
+    <h2>⚙️ Configurações</h2>
+    <p class="text-muted">Defina os horários de funcionamento, regras de agendamento e lembretes por e-mail.</p>
 
-        <!-- ===== SEÇÃO DE LEMBRETES ===== -->
-        <div class="reminder-container">
-            <h4>📧 Lembretes por E-mail</h4>
-            <p class="text-muted" style="font-size:14px;">Envie lembretes automáticos para os clientes antes do agendamento.</p>
-            <div class="reminder-config">
-                <label>
-                    <input type="checkbox" id="reminderEnabled"> Ativar lembretes
-                </label>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <label>Enviar</label>
-                    <input type="number" id="reminderOffset" value="1" min="1" style="width:60px;">
-                    <select id="reminderUnit">
-                        <option value="Hours">Hora(s)</option>
-                        <option value="Days">Dia(s)</option>
-                    </select>
-                    <label style="margin-left:5px;">antes do serviço</label>
-                    <select id="reminderSendTime" style="width:auto;">
-                        <option value="BeforeAppointment">Antes do horário</option>
-                        <option value="DayOfAppointment">Na meia-noite do dia</option>
-                    </select>
-                </div>
+    <div id="message" class="alert" style="display:none;"></div>
+
+    <!-- ===== SEÇÃO DE LEMBRETES ===== -->
+    <div class="card reminder-card">
+        <h4>📧 Lembretes por E-mail</h4>
+        <p class="text-muted" style="font-size:14px;">Envie lembretes automáticos para os clientes antes do agendamento.</p>
+        <div class="flex" style="align-items:center; flex-wrap:wrap; gap:15px; margin:10px 0;">
+            <label>
+                <input type="checkbox" id="reminderEnabled"> Ativar lembretes
+            </label>
+            <div class="flex" style="align-items:center; gap:8px; flex-wrap:wrap;">
+                <label>Enviar</label>
+                <input type="number" id="reminderOffset" value="1" min="1" style="width:60px; padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--input-bg); color:var(--text-color);">
+                <select id="reminderUnit" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--input-bg); color:var(--text-color);">
+                    <option value="Hours">Hora(s)</option>
+                    <option value="Days">Dia(s)</option>
+                </select>
+                <label style="margin-left:5px;">antes do serviço</label>
+                <select id="reminderSendTime" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--input-bg); color:var(--text-color);">
+                    <option value="BeforeAppointment">Antes do horário</option>
+                    <option value="DayOfAppointment">Na meia-noite do dia</option>
+                </select>
             </div>
-            <p style="font-size:12px; color:#94a3b8; margin:5px 0 0 0;">
-                <strong>Exemplos:</strong> 
-                "1 Hora(s) antes do serviço" → envia 1 hora antes. 
-                "Na meia-noite do dia" → envia às 00:00 do dia do agendamento.
-            </p>
         </div>
-
-        <!-- ===== HORÁRIOS ===== -->
-        <h3 style="margin-top:20px;">📅 Horário de Funcionamento</h3>
-        <p class="text-muted" style="font-size:14px;">Configure os períodos de funcionamento para cada dia da semana. <strong>Não há horários padrão</strong> – você deve configurar cada dia manualmente.</p>
-
-        <div id="settings-container"></div>
-
-        <!-- ===== BOTÕES ===== -->
-        <div class="flex" style="margin-top:20px;">
-            <button class="btn btn-primary" onclick="saveSettings()">💾 Salvar</button>
-            <button class="btn btn-outline" onclick="testSlots()">🧪 Testar Slots</button>
-            <button class="btn btn-outline" onclick="window.location.href='dashboard-empresa.html'">⬅️ Voltar</button>
-        </div>
-
-        <!-- ===== RESULTADO DO TESTE ===== -->
-        <div id="test-result" style="display:none; margin-top: 20px; background: #fff3e0; padding: 15px; border-radius: 12px; border: 1px solid #ffb74d;">
-            <h4>Slots gerados para hoje:</h4>
-            <div id="slots-display"></div>
-        </div>
+        <p style="font-size:12px; color:var(--muted); margin:5px 0 0 0;">
+            <strong>Exemplos:</strong> 
+            "1 Hora(s) antes do serviço" → envia 1 hora antes. 
+            "Na meia-noite do dia" → envia às 00:00 do dia do agendamento.
+        </p>
     </div>
 
-    <script>
-        // (mesmo JavaScript, sem alterações)
-        const API_URL = "http://localhost:5182";
-        const days = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    <!-- ===== HORÁRIOS ===== -->
+    <h3 style="margin-top:20px;">📅 Horário de Funcionamento</h3>
+    <p class="text-muted" style="font-size:14px;">Configure os períodos de funcionamento para cada dia da semana. <strong>Não há horários padrão</strong> – você deve configurar cada dia manualmente.</p>
 
-        function getToken() { return localStorage.getItem("token"); }
-        function getCompanyId() { return localStorage.getItem("companyId"); }
+    <div id="settings-container"></div>
 
-        let currentSchedule = null;
-        let currentReminder = null;
+    <!-- ===== BOTÕES ===== -->
+    <div class="flex" style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Salvar</button>
+        <button class="btn btn-outline" onclick="testSlots()">🧪 Testar Slots</button>
+        <button class="btn btn-outline" onclick="window.location.href='dashboard-empresa.html'">⬅️ Voltar</button>
+    </div>
 
-        function showMessage(text, type) {
-            const el = document.getElementById('message');
-            el.textContent = text;
-            el.className = 'alert ' + type;
-            el.style.display = 'block';
-            setTimeout(() => { el.style.display = 'none'; }, 5000);
-        }
+    <!-- ===== RESULTADO DO TESTE ===== -->
+    <div id="test-result" style="display:none;">
+        <h4>Slots gerados para hoje:</h4>
+        <div id="slots-display" class="flex" style="gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
+    </div>
+</div>
 
-        async function loadSettings() {
-            const token = getToken();
-            if (!token) { alert("Faça login primeiro."); window.location.href = "../shared/login.html"; return; }
+<script>
+    // ===== JAVASCRIPT (SEM ALTERAÇÕES) =====
+    const API_URL = "http://localhost:5182";
+    const days = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
-            try {
-                const resp = await fetch(`${API_URL}/companies`, {
-                    headers: { "Authorization": "Bearer " + token }
-                });
-                if (!resp.ok) throw new Error("Erro ao carregar dados");
-                const data = await resp.json();
-                if (data.length === 0) { alert("Empresa não encontrada."); return; }
+    function getToken() { return localStorage.getItem("token"); }
+    function getCompanyId() { return localStorage.getItem("companyId"); }
 
-                const company = data[0];
-                currentSchedule = company.workSchedule || { 
-                    days: {}, 
-                    stepMinutes: 30, 
-                    exceptions: {},
-                    allowMultiplePerClient: true,
-                    maxActiveAppointmentsPerClient: 0,
-                    allowSameDayMultiple: true
-                };
+    let currentSchedule = null;
+    let currentReminder = null;
 
-                currentReminder = company.reminderSettings || {
-                    enabled: false,
-                    offsetValue: 1,
-                    offsetUnit: "Hours",
-                    sendTime: "BeforeAppointment"
-                };
+    function showMessage(text, type) {
+        const el = document.getElementById('message');
+        el.textContent = text;
+        el.className = 'alert ' + type;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
 
-                document.getElementById('reminderEnabled').checked = currentReminder.enabled || false;
-                document.getElementById('reminderOffset').value = currentReminder.offsetValue || 1;
-                document.getElementById('reminderUnit').value = currentReminder.offsetUnit || "Hours";
-                document.getElementById('reminderSendTime').value = currentReminder.sendTime || "BeforeAppointment";
+    async function loadSettings() {
+        const token = getToken();
+        if (!token) { alert("Faça login primeiro."); window.location.href = "../shared/login.html"; return; }
 
-                for (let i = 0; i < 7; i++) {
-                    if (!currentSchedule.days[i]) {
-                        currentSchedule.days[i] = { isClosed: true, periods: [] };
-                    }
-                }
-                renderSettings();
-                showMessage('Configurações carregadas com sucesso!', 'success');
-            } catch (e) {
-                console.error(e);
-                showMessage('Erro ao carregar: ' + e.message, 'error');
-            }
-        }
+        try {
+            const resp = await fetch(`${API_URL}/companies`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            if (!resp.ok) throw new Error("Erro ao carregar dados");
+            const data = await resp.json();
+            if (data.length === 0) { alert("Empresa não encontrada."); return; }
 
-        function renderSettings() {
-            const container = document.getElementById('settings-container');
-            let html = `<div class="step-container">
-                <label>⏱️ Passo entre horários (minutos):</label>
-                <input type="number" id="stepInput" value="${currentSchedule.stepMinutes || 30}" min="10" step="5">
-                <span style="margin-left:15px; color:#64748b;">Ex: 30, 40, 60</span>
-            </div>`;
-
-            html += `<div class="rules-container">
-                <h4>📋 Regras de Agendamento por Cliente</h4>
-                <label>
-                    <input type="checkbox" id="allowMultiple" ${currentSchedule.allowMultiplePerClient !== false ? 'checked' : ''}>
-                    Permitir múltiplos agendamentos por cliente (telefone)
-                </label><br>
-                <label style="margin-top:5px; display:inline-block;">
-                    Máximo de agendamentos ativos por cliente:
-                    <input type="number" id="maxActive" value="${currentSchedule.maxActiveAppointmentsPerClient || 0}" min="0">
-                    <span class="hint">(0 = ilimitado)</span>
-                </label><br>
-                <label>
-                    <input type="checkbox" id="allowSameDay" ${currentSchedule.allowSameDayMultiple !== false ? 'checked' : ''}>
-                    Permitir múltiplos agendamentos no mesmo dia
-                </label>
-                <div style="margin-top:8px; font-size:13px; color:#475569; background:#fff; padding:8px; border-radius:6px;">
-                    <strong>Como funciona:</strong>
-                    <ul style="margin:4px 0 0 20px; padding:0;">
-                        <li>Desmarque "Permitir múltiplos" → cada cliente só pode ter 1 agendamento ativo.</li>
-                        <li>"Máximo ativos" → define o limite (ex: 3). 0 = ilimitado (respeita a regra acima).</li>
-                        <li>Desmarque "Permitir mesmo dia" → cliente não pode ter dois agendamentos no mesmo dia.</li>
-                    </ul>
-                </div>
-            </div>`;
-
-            for (let i = 0; i < 7; i++) {
-                const dayName = days[i];
-                const config = currentSchedule.days[i] || { isClosed: true, periods: [] };
-                const isClosed = config.isClosed !== undefined ? config.isClosed : true;
-
-                html += `<div class="day-config" data-day="${i}">
-                    <h4>
-                        ${dayName}
-                        <label>
-                            <input type="checkbox" ${isClosed ? 'checked' : ''} onchange="toggleDay(${i})">
-                            Fechado
-                        </label>
-                    </h4>
-                    <div id="periods-${i}">
-                        ${config.periods.map((p, idx) => `
-                            <div class="period">
-                                <input type="time" value="${p.start || ''}" 
-                                       onchange="updatePeriod(${i}, ${idx}, 'start', this.value)"
-                                       oninput="updatePeriod(${i}, ${idx}, 'start', this.value)">
-                                até
-                                <input type="time" value="${p.end || ''}" 
-                                       onchange="updatePeriod(${i}, ${idx}, 'end', this.value)"
-                                       oninput="updatePeriod(${i}, ${idx}, 'end', this.value)">
-                                <button class="btn btn-danger btn-sm" onclick="removePeriod(${i}, ${idx})">✖</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="btn btn-success btn-sm" onclick="addPeriod(${i})">+ Adicionar período</button>
-                </div>`;
-            }
-
-            html += `<h3>📅 Exceções (dias específicos)</h3>`;
-            const exceptions = currentSchedule.exceptions || {};
-            const exKeys = Object.keys(exceptions);
-            if (exKeys.length === 0) {
-                html += `<p class="text-muted">Nenhuma exceção cadastrada.</p>`;
-            } else {
-                exKeys.forEach(dateKey => {
-                    const ex = exceptions[dateKey];
-                    html += `<div class="exception-row">
-                        <input type="date" value="${dateKey}" disabled>
-                        <label>Fechado: <input type="checkbox" ${ex.isClosed ? 'checked' : ''} disabled></label>
-                        <span>Períodos: ${ex.periods.map(p => p.start + '-' + p.end).join(', ') || 'Nenhum'}</span>
-                        <button class="btn btn-danger btn-sm" onclick="removeException('${dateKey}')">✖</button>
-                    </div>`;
-                });
-            }
-            html += `<div class="exception-row" style="margin-top:10px;">
-                <input type="date" id="exceptionDate">
-                <select id="exceptionType">
-                    <option value="closed">Fechado</option>
-                    <option value="custom">Personalizado (copiar dia)</option>
-                </select>
-                <button class="btn btn-primary btn-sm" onclick="addException()">+ Adicionar</button>
-            </div>`;
-
-            container.innerHTML = html;
-        }
-
-        window.toggleDay = function(dayIndex) {
-            const isClosed = document.querySelector(`.day-config[data-day="${dayIndex}"] input[type="checkbox"]`).checked;
-            if (!currentSchedule.days[dayIndex]) {
-                currentSchedule.days[dayIndex] = { isClosed, periods: [] };
-            } else {
-                currentSchedule.days[dayIndex].isClosed = isClosed;
-                if (isClosed) currentSchedule.days[dayIndex].periods = [];
-            }
-            renderSettings();
-        };
-
-        window.addPeriod = function(dayIndex) {
-            if (!currentSchedule.days[dayIndex]) {
-                currentSchedule.days[dayIndex] = { isClosed: false, periods: [] };
-            }
-            currentSchedule.days[dayIndex].periods.push({ start: "", end: "" });
-            renderSettings();
-        };
-
-        window.removePeriod = function(dayIndex, idx) {
-            if (currentSchedule.days[dayIndex]) {
-                currentSchedule.days[dayIndex].periods.splice(idx, 1);
-                if (currentSchedule.days[dayIndex].periods.length === 0) {
-                    currentSchedule.days[dayIndex].isClosed = true;
-                }
-                renderSettings();
-            }
-        };
-
-        window.updatePeriod = function(dayIndex, idx, type, value) {
-            if (currentSchedule.days && currentSchedule.days[dayIndex]) {
-                if (!currentSchedule.days[dayIndex].periods[idx]) {
-                    currentSchedule.days[dayIndex].periods[idx] = { start: "", end: "" };
-                }
-                currentSchedule.days[dayIndex].periods[idx][type] = value;
-            }
-        };
-
-        window.addException = function() {
-            const date = document.getElementById('exceptionDate').value;
-            const type = document.getElementById('exceptionType').value;
-            if (!date) { alert("Selecione uma data."); return; }
-            if (!currentSchedule.exceptions) currentSchedule.exceptions = {};
-
-            if (type === 'closed') {
-                currentSchedule.exceptions[date] = { isClosed: true, periods: [] };
-            } else {
-                const dayOfWeek = new Date(date + 'T00:00:00').getDay();
-                const defaultConfig = currentSchedule.days[dayOfWeek] || { periods: [] };
-                currentSchedule.exceptions[date] = {
-                    isClosed: false,
-                    periods: defaultConfig.periods.map(p => ({ ...p }))
-                };
-            }
-            renderSettings();
-        };
-
-        window.removeException = function(dateKey) {
-            if (currentSchedule.exceptions) {
-                delete currentSchedule.exceptions[dateKey];
-                renderSettings();
-            }
-        };
-
-        async function saveSettings() {
-            const stepInput = document.getElementById('stepInput');
-            if (stepInput) {
-                currentSchedule.stepMinutes = parseInt(stepInput.value) || 30;
-            }
-
-            const allowMultiple = document.getElementById('allowMultiple');
-            const maxActive = document.getElementById('maxActive');
-            const allowSameDay = document.getElementById('allowSameDay');
-            if (allowMultiple) {
-                currentSchedule.allowMultiplePerClient = allowMultiple.checked;
-            }
-            if (maxActive) {
-                currentSchedule.maxActiveAppointmentsPerClient = parseInt(maxActive.value) || 0;
-            }
-            if (allowSameDay) {
-                currentSchedule.allowSameDayMultiple = allowSameDay.checked;
-            }
-
-            for (let i = 0; i < 7; i++) {
-                if (currentSchedule.days[i] && currentSchedule.days[i].isClosed) {
-                    currentSchedule.days[i].periods = [];
-                }
-            }
-
-            const reminderEnabled = document.getElementById('reminderEnabled').checked;
-            const reminderOffset = parseInt(document.getElementById('reminderOffset').value) || 1;
-            const reminderUnit = document.getElementById('reminderUnit').value;
-            const reminderSendTime = document.getElementById('reminderSendTime').value;
-
-            const payload = {
-                WorkSchedule: {
-                    stepMinutes: currentSchedule.stepMinutes,
-                    days: currentSchedule.days,
-                    exceptions: currentSchedule.exceptions,
-                    allowMultiplePerClient: currentSchedule.allowMultiplePerClient,
-                    maxActiveAppointmentsPerClient: currentSchedule.maxActiveAppointmentsPerClient,
-                    allowSameDayMultiple: currentSchedule.allowSameDayMultiple
-                },
-                ReminderSettings: {
-                    enabled: reminderEnabled,
-                    offsetValue: reminderOffset,
-                    offsetUnit: reminderUnit,
-                    sendTime: reminderSendTime
-                }
+            const company = data[0];
+            currentSchedule = company.workSchedule || { 
+                days: {}, 
+                stepMinutes: 30, 
+                exceptions: {},
+                allowMultiplePerClient: true,
+                maxActiveAppointmentsPerClient: 0,
+                allowSameDayMultiple: true
             };
 
-            const token = getToken();
-            try {
-                const resp = await fetch(`${API_URL}/companies/settings`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer " + token
-                    },
-                    body: JSON.stringify(payload)
-                });
+            currentReminder = company.reminderSettings || {
+                enabled: false,
+                offsetValue: 1,
+                offsetUnit: "Hours",
+                sendTime: "BeforeAppointment"
+            };
 
-                if (!resp.ok) {
-                    const errorText = await resp.text();
-                    throw new Error(`Erro ${resp.status}: ${errorText}`);
+            document.getElementById('reminderEnabled').checked = currentReminder.enabled || false;
+            document.getElementById('reminderOffset').value = currentReminder.offsetValue || 1;
+            document.getElementById('reminderUnit').value = currentReminder.offsetUnit || "Hours";
+            document.getElementById('reminderSendTime').value = currentReminder.sendTime || "BeforeAppointment";
+
+            for (let i = 0; i < 7; i++) {
+                if (!currentSchedule.days[i]) {
+                    currentSchedule.days[i] = { isClosed: true, periods: [] };
                 }
+            }
+            renderSettings();
+            showMessage('Configurações carregadas com sucesso!', 'success');
+        } catch (e) {
+            console.error(e);
+            showMessage('Erro ao carregar: ' + e.message, 'error');
+        }
+    }
 
-                showMessage('✅ Configurações salvas com sucesso!', 'success');
-                await loadSettings();
-            } catch (e) {
-                console.error(e);
-                showMessage('❌ Erro ao salvar: ' + e.message, 'error');
+    function renderSettings() {
+        const container = document.getElementById('settings-container');
+        let html = `<div class="card" style="background:var(--light-bg);">
+            <label style="font-weight:600; margin-right:10px; color:var(--text-color);">⏱️ Passo entre horários (minutos):</label>
+            <input type="number" id="stepInput" value="${currentSchedule.stepMinutes || 30}" min="10" step="5" style="width:80px; padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--input-bg); color:var(--text-color);">
+            <span style="margin-left:15px; color:var(--muted);">Ex: 30, 40, 60</span>
+        </div>`;
+
+        html += `<div class="card" style="background:var(--primary-light);">
+            <h4>📋 Regras de Agendamento por Cliente</h4>
+            <label>
+                <input type="checkbox" id="allowMultiple" ${currentSchedule.allowMultiplePerClient !== false ? 'checked' : ''}>
+                Permitir múltiplos agendamentos por cliente (telefone)
+            </label><br>
+            <label style="margin-top:5px; display:inline-block;">
+                Máximo de agendamentos ativos por cliente:
+                <input type="number" id="maxActive" value="${currentSchedule.maxActiveAppointmentsPerClient || 0}" min="0" style="width:70px; padding:4px 8px; border:1px solid var(--border-color); border-radius:6px; background:var(--input-bg); color:var(--text-color);">
+                <span style="font-size:12px; color:var(--muted); margin-left:5px;">(0 = ilimitado)</span>
+            </label><br>
+            <label>
+                <input type="checkbox" id="allowSameDay" ${currentSchedule.allowSameDayMultiple !== false ? 'checked' : ''}>
+                Permitir múltiplos agendamentos no mesmo dia
+            </label>
+            <div class="rules-box">
+                <strong>Como funciona:</strong>
+                <ul style="margin:4px 0 0 20px; padding:0;">
+                    <li>Desmarque "Permitir múltiplos" → cada cliente só pode ter 1 agendamento ativo.</li>
+                    <li>"Máximo ativos" → define o limite (ex: 3). 0 = ilimitado (respeita a regra acima).</li>
+                    <li>Desmarque "Permitir mesmo dia" → cliente não pode ter dois agendamentos no mesmo dia.</li>
+                </ul>
+            </div>
+        </div>`;
+
+        for (let i = 0; i < 7; i++) {
+            const dayName = days[i];
+            const config = currentSchedule.days[i] || { isClosed: true, periods: [] };
+            const isClosed = config.isClosed !== undefined ? config.isClosed : true;
+
+            html += `<div class="day-config" data-day="${i}">
+                <h4>
+                    ${dayName}
+                    <label>
+                        <input type="checkbox" ${isClosed ? 'checked' : ''} onchange="toggleDay(${i})">
+                        Fechado
+                    </label>
+                </h4>
+                <div id="periods-${i}">
+                    ${config.periods.map((p, idx) => `
+                        <div class="flex" style="align-items:center; gap:10px; margin:6px 0; flex-wrap:wrap;">
+                            <input type="time" value="${p.start || ''}" 
+                                   onchange="updatePeriod(${i}, ${idx}, 'start', this.value)"
+                                   oninput="updatePeriod(${i}, ${idx}, 'start', this.value)" class="period-input">
+                            até
+                            <input type="time" value="${p.end || ''}" 
+                                   onchange="updatePeriod(${i}, ${idx}, 'end', this.value)"
+                                   oninput="updatePeriod(${i}, ${idx}, 'end', this.value)" class="period-input">
+                            <button class="btn btn-danger btn-sm" onclick="removePeriod(${i}, ${idx})">✖</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="btn btn-success btn-sm" onclick="addPeriod(${i})">+ Adicionar período</button>
+            </div>`;
+        }
+
+        html += `<h3>📅 Exceções (dias específicos)</h3>`;
+        const exceptions = currentSchedule.exceptions || {};
+        const exKeys = Object.keys(exceptions);
+        if (exKeys.length === 0) {
+            html += `<p class="text-muted">Nenhuma exceção cadastrada.</p>`;
+        } else {
+            exKeys.forEach(dateKey => {
+                const ex = exceptions[dateKey];
+                html += `<div class="exception-row">
+                    <input type="date" value="${dateKey}" disabled>
+                    <label>Fechado: <input type="checkbox" ${ex.isClosed ? 'checked' : ''} disabled></label>
+                    <span>Períodos: ${ex.periods.map(p => p.start + '-' + p.end).join(', ') || 'Nenhum'}</span>
+                    <button class="btn btn-danger btn-sm" onclick="removeException('${dateKey}')">✖</button>
+                </div>`;
+            });
+        }
+        html += `<div class="exception-row" style="margin-top:10px;">
+            <input type="date" id="exceptionDate">
+            <select id="exceptionType">
+                <option value="closed">Fechado</option>
+                <option value="custom">Personalizado (copiar dia)</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="addException()">+ Adicionar</button>
+        </div>`;
+
+        container.innerHTML = html;
+    }
+
+    window.toggleDay = function(dayIndex) {
+        const isClosed = document.querySelector(`.day-config[data-day="${dayIndex}"] input[type="checkbox"]`).checked;
+        if (!currentSchedule.days[dayIndex]) {
+            currentSchedule.days[dayIndex] = { isClosed, periods: [] };
+        } else {
+            currentSchedule.days[dayIndex].isClosed = isClosed;
+            if (isClosed) currentSchedule.days[dayIndex].periods = [];
+        }
+        renderSettings();
+    };
+
+    window.addPeriod = function(dayIndex) {
+        if (!currentSchedule.days[dayIndex]) {
+            currentSchedule.days[dayIndex] = { isClosed: false, periods: [] };
+        }
+        currentSchedule.days[dayIndex].periods.push({ start: "", end: "" });
+        renderSettings();
+    };
+
+    window.removePeriod = function(dayIndex, idx) {
+        if (currentSchedule.days[dayIndex]) {
+            currentSchedule.days[dayIndex].periods.splice(idx, 1);
+            if (currentSchedule.days[dayIndex].periods.length === 0) {
+                currentSchedule.days[dayIndex].isClosed = true;
+            }
+            renderSettings();
+        }
+    };
+
+    window.updatePeriod = function(dayIndex, idx, type, value) {
+        if (currentSchedule.days && currentSchedule.days[dayIndex]) {
+            if (!currentSchedule.days[dayIndex].periods[idx]) {
+                currentSchedule.days[dayIndex].periods[idx] = { start: "", end: "" };
+            }
+            currentSchedule.days[dayIndex].periods[idx][type] = value;
+        }
+    };
+
+    window.addException = function() {
+        const date = document.getElementById('exceptionDate').value;
+        const type = document.getElementById('exceptionType').value;
+        if (!date) { alert("Selecione uma data."); return; }
+        if (!currentSchedule.exceptions) currentSchedule.exceptions = {};
+
+        if (type === 'closed') {
+            currentSchedule.exceptions[date] = { isClosed: true, periods: [] };
+        } else {
+            const dayOfWeek = new Date(date + 'T00:00:00').getDay();
+            const defaultConfig = currentSchedule.days[dayOfWeek] || { periods: [] };
+            currentSchedule.exceptions[date] = {
+                isClosed: false,
+                periods: defaultConfig.periods.map(p => ({ ...p }))
+            };
+        }
+        renderSettings();
+    };
+
+    window.removeException = function(dateKey) {
+        if (currentSchedule.exceptions) {
+            delete currentSchedule.exceptions[dateKey];
+            renderSettings();
+        }
+    };
+
+    async function saveSettings() {
+        const stepInput = document.getElementById('stepInput');
+        if (stepInput) {
+            currentSchedule.stepMinutes = parseInt(stepInput.value) || 30;
+        }
+
+        const allowMultiple = document.getElementById('allowMultiple');
+        const maxActive = document.getElementById('maxActive');
+        const allowSameDay = document.getElementById('allowSameDay');
+        if (allowMultiple) {
+            currentSchedule.allowMultiplePerClient = allowMultiple.checked;
+        }
+        if (maxActive) {
+            currentSchedule.maxActiveAppointmentsPerClient = parseInt(maxActive.value) || 0;
+        }
+        if (allowSameDay) {
+            currentSchedule.allowSameDayMultiple = allowSameDay.checked;
+        }
+
+        for (let i = 0; i < 7; i++) {
+            if (currentSchedule.days[i] && currentSchedule.days[i].isClosed) {
+                currentSchedule.days[i].periods = [];
             }
         }
 
-        async function testSlots() {
-            const companyId = getCompanyId();
-            if (!companyId) { alert("Company ID não encontrado."); return; }
+        const reminderEnabled = document.getElementById('reminderEnabled').checked;
+        const reminderOffset = parseInt(document.getElementById('reminderOffset').value) || 1;
+        const reminderUnit = document.getElementById('reminderUnit').value;
+        const reminderSendTime = document.getElementById('reminderSendTime').value;
 
-            await saveSettings();
-
-            const today = new Date().toISOString().split('T')[0];
-            const url = `${API_URL}/public/slots?companyId=${companyId}&date=${today}`;
-            try {
-                const resp = await fetch(url);
-                if (!resp.ok) throw new Error(`Erro ${resp.status}`);
-                const slots = await resp.json();
-                const display = document.getElementById('slots-display');
-                display.innerHTML = slots.length === 0 ?
-                    '<p class="text-muted">Nenhum slot disponível para hoje.</p>' :
-                    slots.map(s => `<span class="slot-badge">${s}</span>`).join(' ');
-                document.getElementById('test-result').style.display = 'block';
-                if (slots.length > 0) {
-                    showMessage(`✅ ${slots.length} slots encontrados para hoje!`, 'success');
-                } else {
-                    showMessage('⚠️ Nenhum slot disponível para hoje. Verifique a configuração.', 'error');
-                }
-            } catch (e) {
-                alert('Erro ao testar slots: ' + e.message);
+        const payload = {
+            WorkSchedule: {
+                stepMinutes: currentSchedule.stepMinutes,
+                days: currentSchedule.days,
+                exceptions: currentSchedule.exceptions,
+                allowMultiplePerClient: currentSchedule.allowMultiplePerClient,
+                maxActiveAppointmentsPerClient: currentSchedule.maxActiveAppointmentsPerClient,
+                allowSameDayMultiple: currentSchedule.allowSameDayMultiple
+            },
+            ReminderSettings: {
+                enabled: reminderEnabled,
+                offsetValue: reminderOffset,
+                offsetUnit: reminderUnit,
+                sendTime: reminderSendTime
             }
-        }
+        };
 
-        window.onload = loadSettings;
-    </script>
+        const token = getToken();
+        try {
+            const resp = await fetch(`${API_URL}/companies/settings`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                const errorText = await resp.text();
+                throw new Error(`Erro ${resp.status}: ${errorText}`);
+            }
+
+            showMessage('✅ Configurações salvas com sucesso!', 'success');
+            await loadSettings();
+        } catch (e) {
+            console.error(e);
+            showMessage('❌ Erro ao salvar: ' + e.message, 'error');
+        }
+    }
+
+    async function testSlots() {
+        const companyId = getCompanyId();
+        if (!companyId) { alert("Company ID não encontrado."); return; }
+
+        await saveSettings();
+
+        const today = new Date().toISOString().split('T')[0];
+        const url = `${API_URL}/public/slots?companyId=${companyId}&date=${today}`;
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+            const slots = await resp.json();
+            const display = document.getElementById('slots-display');
+            display.innerHTML = slots.length === 0 ?
+                '<p class="text-muted">Nenhum slot disponível para hoje.</p>' :
+                slots.map(s => `<span class="slot-badge">${s}</span>`).join('');
+            document.getElementById('test-result').style.display = 'block';
+            if (slots.length > 0) {
+                showMessage(`✅ ${slots.length} slots encontrados para hoje!`, 'success');
+            } else {
+                showMessage('⚠️ Nenhum slot disponível para hoje. Verifique a configuração.', 'error');
+            }
+        } catch (e) {
+            alert('Erro ao testar slots: ' + e.message);
+        }
+    }
+
+    window.onload = loadSettings;
+</script>
+
+<script src="/js/theme.js"></script>
 </body>
 </html>

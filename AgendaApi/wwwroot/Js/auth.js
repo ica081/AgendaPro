@@ -6,7 +6,7 @@ async function register() {
     // Agora sempre será "Company" (fixo, pois clientes não se cadastram mais)
     const userType = "Company";
 
-    const response = await fetch(`${API_URL}/auth/register`, {
+    const response = await fetch(`${API_URL}/auth/index`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, type: userType })

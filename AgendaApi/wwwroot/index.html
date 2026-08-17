@@ -2,59 +2,18 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - AgendaPro</title>
-    <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        /* Ajuste para checkbox (label) no modo escuro */
-        .form-group label {
-            color: var(--text-color);
-        }
-        .form-group input[type="checkbox"] {
-            accent-color: var(--primary);
-        }
-        a {
-            color: var(--primary);
-        }
-        a:hover {
-            color: var(--primary-hover);
-        }
-    </style>
+    <title>Login</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="container" style="max-width: 450px;">
-    <h2 style="text-align:center;">🔐 Login</h2>
-    <p class="text-muted text-center">Acesse sua conta para gerenciar sua empresa.</p>
+<h2>Login</h2>
 
-    <div class="card">
-        <div class="form-group">
-            <label for="email">E-mail</label>
-            <input type="email" id="email" placeholder="seu@email.com">
-        </div>
-        <div class="form-group">
-            <label for="password">Senha</label>
-            <input type="password" id="password" placeholder="Digite sua senha">
-        </div>
-        <div class="form-group">
-            <label>
-                <input type="checkbox" onclick="togglePassword()"> Mostrar senha
-            </label>
-        </div>
-        <button class="btn btn-primary btn-block" onclick="login()">Entrar</button>
-        <p style="margin-top: 12px; text-align:center;">
-            Não tem conta? <a href="/shared/register.html">Criar conta</a>
-        </p>
-    </div>
-</div>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Senha">
 
-<script>
-    function togglePassword() {
-        const pwd = document.getElementById('password');
-        pwd.type = pwd.type === 'password' ? 'text' : 'password';
-    }
-</script>
-<script src="/js/auth.js?v=3"></script>
-<script src="/js/theme.js"></script>
+<button onclick="login()">Entrar</button>
+
+<script src="js/auth.js"></script>
 </body>
 </html>

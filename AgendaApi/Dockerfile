@@ -15,7 +15,12 @@ RUN dotnet publish -c Release -o out
 # Usa a imagem de runtime para executar a aplicação
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
+
+# Copia os arquivos publicados (inclui wwwroot automaticamente)
 COPY --from=build /app/AgendaApi/out .
+
+# COPIA EXPLICITAMENTE A PASTA WWWROOT (garantia extra)
+COPY --from=build /app/AgendaApi/wwwroot ./wwwroot
 
 # Configura a porta que o Render espera (8080) e inicia a aplicação
 ENV ASPNETCORE_URLS=http://+:8080

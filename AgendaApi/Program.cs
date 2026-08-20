@@ -12,6 +12,10 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using System.Net;
 
+
+// Evita erro de inotify no Render (FileSystemWatcher)
+Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>

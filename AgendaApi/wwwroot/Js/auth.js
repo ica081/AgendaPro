@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5182";
+const API_URL = "https://agendaapi-4772.onrender.com";
 
 async function register() {
     const email = document.getElementById("email").value;

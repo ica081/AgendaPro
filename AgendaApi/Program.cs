@@ -12,6 +12,7 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using System.Net;
 
+
 // Evita erro de inotify no Render (FileSystemWatcher)
 Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
 
@@ -384,7 +385,6 @@ List<DateTime> GenerateSlots(Company company, DateTime date)
         if (!TimeSpan.TryParse(startStr, out var startTime) || !TimeSpan.TryParse(endStr, out var endTime))
             continue;
 
-        // Gerar slots em UTC, mas com a data local (considerando que o servidor está em UTC)
         var current = date.Date + startTime;
         var end = date.Date + endTime;
 
@@ -405,7 +405,7 @@ async Task<string?> ValidateClientAppointments(AppDbContext db, string clientEma
     if (string.IsNullOrWhiteSpace(clientEmail))
         return null;
 
-    var now = DateTime.UtcNow;
+    var now = DateTime.Now;
 
     var query = db.Appointments
         .Where(a => a.CompanyId == companyId &&
@@ -798,7 +798,7 @@ app.MapDelete("/companies/{id}", async (Guid id, AppDbContext db, ClaimsPrincipa
 }).RequireAuthorization();
 
 // =======================
-// APPOINTMENTS (CRIAR E EDITAR) - ADMIN (CORRIGIDO)
+// APPOINTMENTS (CRIAR E EDITAR) - ADMIN
 // =======================
 app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db, ClaimsPrincipal user) =>
 {
@@ -818,18 +818,17 @@ app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db,
     if (employee == null)
         return Results.BadRequest("Funcionário inválido.");
 
-    // Manter UTC, não converter para local
     DateTime startTime = request.StartTime;
-    if (startTime.Kind == DateTimeKind.Local)
-        startTime = startTime.ToUniversalTime();
+    if (startTime.Kind == DateTimeKind.Utc)
+        startTime = startTime.ToLocalTime();
 
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-    // Gerar slots com base na data em UTC
+    // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
     var slots = GenerateSlots(company, startTime.Date);
     if (slots.Count == 0)
         return Results.BadRequest("Empresa fechada neste dia.");
-    if (!slots.Any(s => s == startTime))
+    if (!slots.Any(s => s.Date == startTime.Date && s.TimeOfDay == startTime.TimeOfDay))
         return Results.BadRequest("Horário não disponível para agendamento.");
 
     var validationError = await ValidateClientAppointments(db, request.ClientEmail, companyId.Value, null, startTime);
@@ -902,14 +901,15 @@ app.MapPut("/appointments/{id}", async (Guid id, UpdateAppointmentRequest reques
     }
 
     DateTime startTime = request.StartTime ?? appointment.StartTime;
-    if (startTime.Kind == DateTimeKind.Local)
-        startTime = startTime.ToUniversalTime();
+    if (startTime.Kind == DateTimeKind.Utc)
+        startTime = startTime.ToLocalTime();
 
     int durationMinutes = appointment.Service?.DurationMinutes ?? 30;
     var endTime = startTime.AddMinutes(durationMinutes);
 
-    var slots = GenerateSlots(company, startTime);
-    if (!slots.Any(s => s == startTime))
+    // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
+    var slots = GenerateSlots(company, startTime.Date);
+    if (!slots.Any(s => s.Date == startTime.Date && s.TimeOfDay == startTime.TimeOfDay))
         return Results.BadRequest("Horário não disponível para agendamento.");
 
     var clientEmail = request.ClientEmail ?? appointment.ClientEmail;
@@ -994,13 +994,14 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
     if (employee == null) return Results.BadRequest("Funcionário inválido.");
 
     DateTime startTime = request.StartTime;
-    if (startTime.Kind == DateTimeKind.Local)
-        startTime = startTime.ToUniversalTime();
+    if (startTime.Kind == DateTimeKind.Utc)
+        startTime = startTime.ToLocalTime();
 
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-    var slots = GenerateSlots(company, startTime);
-    if (slots.Count == 0 || !slots.Any(s => s == startTime))
+    // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
+    var slots = GenerateSlots(company, startTime.Date);
+    if (slots.Count == 0 || !slots.Any(s => s.Date == startTime.Date && s.TimeOfDay == startTime.TimeOfDay))
         return Results.BadRequest("Horário não disponível.");
 
     var validationError = await ValidateClientAppointments(db, request.ClientEmail, companyId, null, startTime);
@@ -1161,18 +1162,17 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         }
         catch { }
 
-        // Converter para UTC se for Local (o frontend envia UTC, então geralmente é Kind = Utc)
         DateTime startTime = request.StartTime;
-        if (startTime.Kind == DateTimeKind.Local)
-            startTime = startTime.ToUniversalTime();
+        if (startTime.Kind == DateTimeKind.Utc)
+            startTime = startTime.ToLocalTime();
 
         var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-        // Gerar slots com base na data do agendamento (UTC)
+        // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
         var slots = GenerateSlots(company, startTime.Date);
         if (slots.Count == 0)
             return Results.BadRequest("Empresa fechada neste dia.");
-        if (!slots.Any(s => s == startTime))
+        if (!slots.Any(s => s.Date == startTime.Date && s.TimeOfDay == startTime.TimeOfDay))
             return Results.BadRequest("Horário não disponível para agendamento.");
 
         var validationError = await ValidateClientAppointments(db, request.ClientEmail, companyId, null, startTime);
@@ -1213,8 +1213,8 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync();
 
-        // Construir URLs de confirmação e cancelamento (substituir localhost pela URL do Render)
-        string baseUrl = "https://agendaapi-4772.onrender.com"; // <-- IMPORTANTE: mude para a sua URL do Render
+        // --- CORREÇÃO: baseUrl agora usa a URL pública do Render ---
+        string baseUrl = "https://agendaapi-4772.onrender.com"; // ou use configuração
         string confirmLink = $"{baseUrl}/confirm?token={appointment.ConfirmationToken}";
         string cancelLink = $"{baseUrl}/cancel?token={appointment.CancellationToken}";
 
@@ -1224,7 +1224,7 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         string clientEmailBody = $@"
             <h2>Confirme seu agendamento</h2>
             <p>Olá {appointment.ClientName},</p>
-            <p>Você agendou o serviço <strong>'{service.Name}'</strong> na empresa <strong>'{company.Name}'</strong> para o dia <strong>{startTime.ToLocalTime():dd/MM/yyyy HH:mm}</strong>.</p>
+            <p>Você agendou o serviço <strong>'{service.Name}'</strong> na empresa <strong>'{company.Name}'</strong> para o dia <strong>{startTime:dd/MM/yyyy HH:mm}</strong>.</p>
             <p>Telefone: {appointment.ClientPhone}</p>
             <p>Por favor, clique no botão abaixo para confirmar:</p>
             <p><a href='{confirmLink}' style='display:inline-block; padding:12px 24px; background:#2563eb; color:white; text-decoration:none; border-radius:6px;'>Confirmar Agendamento</a></p>
@@ -1318,7 +1318,7 @@ app.MapGet("/confirm", async (string token, AppDbContext db, IServiceScopeFactor
             <p><strong>Telefone:</strong> {clientPhone}</p>
             <p><strong>Serviço:</strong> {serviceName}</p>
             <p><strong>Funcionário:</strong> {employeeName}</p>
-            <p><strong>Data/Hora:</strong> {startTime.ToLocalTime():dd/MM/yyyy HH:mm}</p>
+            <p><strong>Data/Hora:</strong> {startTime:dd/MM/yyyy HH:mm}</p>
             <p>O agendamento foi confirmado pelo cliente.</p>
             <p>Atenciosamente,<br/>AgendaPro</p>
         ";
@@ -1362,7 +1362,7 @@ app.MapGet("/cancel", async (string token, AppDbContext db, IServiceScopeFactory
     if (appointment.Status == "Pending")
         return Results.BadRequest("Agendamento ainda não confirmado. Para cancelar, aguarde a confirmação ou entre em contato.");
 
-    if (appointment.StartTime < DateTime.UtcNow)
+    if (appointment.StartTime < DateTime.Now)
         return Results.BadRequest("Não é possível cancelar um agendamento que já passou.");
 
     // Salvar dados do cliente antes de cancelar
@@ -1389,7 +1389,7 @@ app.MapGet("/cancel", async (string token, AppDbContext db, IServiceScopeFactory
             <p><strong>E-mail:</strong> {clientEmail}</p>
             <p><strong>Telefone:</strong> {clientPhone}</p>
             <p><strong>Serviço:</strong> {serviceName}</p>
-            <p><strong>Data/Hora:</strong> {startTime.ToLocalTime():dd/MM/yyyy HH:mm}</p>
+            <p><strong>Data/Hora:</strong> {startTime:dd/MM/yyyy HH:mm}</p>
             <p>O agendamento foi cancelado pelo cliente.</p>
             <p>Atenciosamente,<br/>AgendaPro</p>
         ";

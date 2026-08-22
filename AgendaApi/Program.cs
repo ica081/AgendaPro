@@ -12,7 +12,6 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using System.Net;
 
-
 // Evita erro de inotify no Render (FileSystemWatcher)
 Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
 
@@ -1131,7 +1130,7 @@ app.MapGet("/public/monthly-slots", async (Guid companyId, int year, int month, 
 });
 
 // =======================
-// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (CORRIGIDO)
+// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (COM ENVIO DE EMAIL EM BACKGROUND)
 // =======================
 app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db, IServiceScopeFactory scopeFactory) =>
 {
@@ -1219,7 +1218,7 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         string cancelLink = $"{baseUrl}/cancel?token={appointment.CancellationToken}";
 
         // ============================================================
-        // E-MAIL PARA O CLIENTE (confirmação)
+        // E-MAIL PARA O CLIENTE (confirmação) - ENVIADO EM BACKGROUND
         // ============================================================
         string clientEmailBody = $@"
             <h2>Confirme seu agendamento</h2>
@@ -1236,18 +1235,21 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
             <p>Atenciosamente,<br/>AgendaPro</p>
         ";
 
-        using (var scope = scopeFactory.CreateScope())
+        // Envia o e-mail em background para não travar a resposta
+        _ = Task.Run(async () =>
         {
+            using var scope = scopeFactory.CreateScope();
             var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
             try
             {
                 await emailService.SendEmailAsync(request.ClientEmail, "Confirme seu agendamento", clientEmailBody);
+                Console.WriteLine($"[EMAIL] E-mail de confirmação enviado para {request.ClientEmail}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao enviar email para o cliente: {ex.Message}");
+                Console.WriteLine($"[EMAIL] Erro ao enviar email para o cliente {request.ClientEmail}: {ex.Message}");
             }
-        }
+        });
 
         return Results.Ok(new
         {

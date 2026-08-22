@@ -797,7 +797,7 @@ app.MapDelete("/companies/{id}", async (Guid id, AppDbContext db, ClaimsPrincipa
 }).RequireAuthorization();
 
 // =======================
-// APPOINTMENTS (CRIAR E EDITAR) - ADMIN
+// APPOINTMENTS (CRIAR E EDITAR) - ADMIN (CORRIGIDO)
 // =======================
 app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db, ClaimsPrincipal user) =>
 {
@@ -817,13 +817,10 @@ app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db,
     if (employee == null)
         return Results.BadRequest("Funcionário inválido.");
 
+    // --- CORREÇÃO: NÃO CONVERTER FUSO ---
     DateTime startTime = request.StartTime;
-    if (startTime.Kind == DateTimeKind.Utc)
-        startTime = startTime.ToLocalTime();
-
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-    // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
     var slots = GenerateSlots(company, startTime.Date);
     if (slots.Count == 0)
         return Results.BadRequest("Empresa fechada neste dia.");
@@ -899,14 +896,11 @@ app.MapPut("/appointments/{id}", async (Guid id, UpdateAppointmentRequest reques
         appointment.EmployeeId = request.EmployeeId.Value;
     }
 
+    // --- CORREÇÃO: NÃO CONVERTER FUSO ---
     DateTime startTime = request.StartTime ?? appointment.StartTime;
-    if (startTime.Kind == DateTimeKind.Utc)
-        startTime = startTime.ToLocalTime();
-
     int durationMinutes = appointment.Service?.DurationMinutes ?? 30;
     var endTime = startTime.AddMinutes(durationMinutes);
 
-    // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
     var slots = GenerateSlots(company, startTime.Date);
     if (!slots.Any(s => s.Date == startTime.Date && s.TimeOfDay == startTime.TimeOfDay))
         return Results.BadRequest("Horário não disponível para agendamento.");
@@ -975,7 +969,7 @@ app.MapDelete("/appointments/{id}", async (Guid id, AppDbContext db, ClaimsPrinc
 }).RequireAuthorization();
 
 // =======================
-// ENDPOINT PARA CLIENTE LOGADO CRIAR AGENDAMENTO
+// ENDPOINT PARA CLIENTE LOGADO CRIAR AGENDAMENTO (CORRIGIDO)
 // =======================
 app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateScheduleRequest request, AppDbContext db, ClaimsPrincipal user) =>
 {
@@ -992,13 +986,10 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
     var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId && e.CompanyId == companyId);
     if (employee == null) return Results.BadRequest("Funcionário inválido.");
 
+    // --- CORREÇÃO: NÃO CONVERTER FUSO ---
     DateTime startTime = request.StartTime;
-    if (startTime.Kind == DateTimeKind.Utc)
-        startTime = startTime.ToLocalTime();
-
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-    // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
     var slots = GenerateSlots(company, startTime.Date);
     if (slots.Count == 0 || !slots.Any(s => s.Date == startTime.Date && s.TimeOfDay == startTime.TimeOfDay))
         return Results.BadRequest("Horário não disponível.");
@@ -1130,7 +1121,7 @@ app.MapGet("/public/monthly-slots", async (Guid companyId, int year, int month, 
 });
 
 // =======================
-// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (COM ENVIO DE EMAIL EM BACKGROUND)
+// ENDPOINT PÚBLICO PARA CRIAR AGENDAMENTO (CORRIGIDO)
 // =======================
 app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest request, AppDbContext db, IServiceScopeFactory scopeFactory) =>
 {
@@ -1161,13 +1152,10 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         }
         catch { }
 
+        // --- CORREÇÃO: NÃO CONVERTER FUSO HORÁRIO ---
         DateTime startTime = request.StartTime;
-        if (startTime.Kind == DateTimeKind.Utc)
-            startTime = startTime.ToLocalTime();
-
         var endTime = startTime.AddMinutes(service.DurationMinutes);
 
-        // --- CORREÇÃO: comparar data e hora sem considerar Kind ---
         var slots = GenerateSlots(company, startTime.Date);
         if (slots.Count == 0)
             return Results.BadRequest("Empresa fechada neste dia.");
@@ -1212,14 +1200,10 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync();
 
-        // --- CORREÇÃO: baseUrl agora usa a URL pública do Render ---
-        string baseUrl = "https://agendaapi-4772.onrender.com"; // ou use configuração
+        string baseUrl = "https://agendaapi-4772.onrender.com";
         string confirmLink = $"{baseUrl}/confirm?token={appointment.ConfirmationToken}";
         string cancelLink = $"{baseUrl}/cancel?token={appointment.CancellationToken}";
 
-        // ============================================================
-        // E-MAIL PARA O CLIENTE (confirmação) - ENVIADO EM BACKGROUND
-        // ============================================================
         string clientEmailBody = $@"
             <h2>Confirme seu agendamento</h2>
             <p>Olá {appointment.ClientName},</p>
@@ -1235,7 +1219,6 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
             <p>Atenciosamente,<br/>AgendaPro</p>
         ";
 
-        // Envia o e-mail em background para não travar a resposta
         _ = Task.Run(async () =>
         {
             using var scope = scopeFactory.CreateScope();
@@ -1294,7 +1277,6 @@ app.MapGet("/confirm", async (string token, AppDbContext db, IServiceScopeFactor
     if (appointment.Status == "Canceled")
         return Results.BadRequest("Este agendamento foi cancelado e não pode ser confirmado.");
 
-    // Salvar dados antes de alterar
     var clientName = appointment.ClientName;
     var clientEmail = appointment.ClientEmail;
     var clientPhone = appointment.ClientPhone;
@@ -1307,9 +1289,6 @@ app.MapGet("/confirm", async (string token, AppDbContext db, IServiceScopeFactor
     appointment.ConfirmationTokenExpiry = null;
     await db.SaveChangesAsync();
 
-    // ============================================================
-    // E-MAIL PARA A EMPRESA (agendamento confirmado)
-    // ============================================================
     var companyOwnerEmail = await GetCompanyOwnerEmail(appointment.CompanyId, db);
     if (!string.IsNullOrEmpty(companyOwnerEmail))
     {
@@ -1367,7 +1346,6 @@ app.MapGet("/cancel", async (string token, AppDbContext db, IServiceScopeFactory
     if (appointment.StartTime < DateTime.Now)
         return Results.BadRequest("Não é possível cancelar um agendamento que já passou.");
 
-    // Salvar dados do cliente antes de cancelar
     var clientName = appointment.ClientName;
     var clientEmail = appointment.ClientEmail;
     var clientPhone = appointment.ClientPhone;
@@ -1379,9 +1357,6 @@ app.MapGet("/cancel", async (string token, AppDbContext db, IServiceScopeFactory
     appointment.CancellationTokenExpiry = null;
     await db.SaveChangesAsync();
 
-    // ============================================================
-    // E-MAIL PARA A EMPRESA (notificação de cancelamento)
-    // ============================================================
     var companyOwnerEmail = await GetCompanyOwnerEmail(appointment.CompanyId, db);
     if (!string.IsNullOrEmpty(companyOwnerEmail))
     {

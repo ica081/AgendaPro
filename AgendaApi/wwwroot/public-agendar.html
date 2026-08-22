@@ -467,14 +467,16 @@
             return;
         }
 
-        const slotDateTime = new Date(date + 'T' + selectedSlot);
+        // Verifica se o horário já passou
         const now = new Date();
+        const slotDateTime = new Date(date + 'T' + selectedSlot);
         if (slotDateTime <= now) {
             showAlert('Este horário já passou. Selecione um horário futuro.', 'error');
             return;
         }
 
-        const isoStart = slotDateTime.toISOString();
+        // --- CORREÇÃO: enviar data/hora no formato local (sem fuso) ---
+        const localDateTime = date + 'T' + selectedSlot + ':00';
 
         const body = {
             serviceId,
@@ -482,7 +484,7 @@
             clientName,
             clientEmail,
             clientPhone,
-            startTime: isoStart
+            startTime: localDateTime
         };
 
         const btn = document.getElementById('bookBtn');

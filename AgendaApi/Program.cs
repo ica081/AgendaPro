@@ -20,9 +20,12 @@ var builder = WebApplication.CreateBuilder(args);
 // =======================
 // CONFIGURAÇÃO DO BANCO DE DADOS (PostgreSQL)
 // =======================
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration["DATABASE_URL"]
-    ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
+// Prioridade: ConnectionStrings__DefaultConnection (já está no formato Npgsql)
+// Depois: DATABASE_URL (formato postgresql://...)
+// Depois: DefaultConnection (via IConfiguration)
+var connectionString = builder.Configuration["ConnectionStrings__DefaultConnection"]
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["DATABASE_URL"];
 
 if (string.IsNullOrEmpty(connectionString))
 {
@@ -30,14 +33,25 @@ if (string.IsNullOrEmpty(connectionString))
     throw new Exception("String de conexão com o banco de dados não configurada.");
 }
 
-// Converte a string do Render (postgresql://...) para o formato do Npgsql
+// Se a string veio no formato postgresql:// (de DATABASE_URL), converte para o formato Npgsql
 if (connectionString.StartsWith("postgresql://"))
 {
-    // Remove o prefixo "postgresql://" e ajusta para o formato esperado
-    var uri = new Uri(connectionString);
-    var userInfo = uri.UserInfo.Split(':');
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true;";
+    Console.WriteLine("[DB] Convertendo DATABASE_URL para formato Npgsql...");
+    try
+    {
+        var uri = new Uri(connectionString);
+        var userInfo = uri.UserInfo.Split(':');
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true;";
+        Console.WriteLine($"[DB] String convertida: {connectionString}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB] ERRO ao converter DATABASE_URL: {ex.Message}");
+        throw;
+    }
 }
+
+Console.WriteLine($"[DB] Usando string de conexão: {connectionString}");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -80,7 +94,7 @@ builder.Services.AddHttpClient<EmailService>();
 var app = builder.Build();
 
 // =======================
-// APLICA MIGRAÇÕES AUTOMATICAMENTE (evita EnsureCreated)
+// APLICA MIGRAÇÕES AUTOMATICAMENTE
 // =======================
 using (var scope = app.Services.CreateScope())
 {

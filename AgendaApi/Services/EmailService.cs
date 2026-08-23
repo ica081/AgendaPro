@@ -17,7 +17,7 @@ public class EmailService : IEmailService
     {
         Console.WriteLine($"[EMAIL] Iniciando envio para {toEmail}");
 
-        // Lê as configurações com fallback
+        // Lê as configurações com fallback para ambos os formatos
         var smtpHost = _configuration["EmailSettings:SmtpHost"] ?? _configuration["EmailSettings__SmtpHost"] ?? "smtp.gmail.com";
         var smtpPortStr = _configuration["EmailSettings:SmtpPort"] ?? _configuration["EmailSettings__SmtpPort"] ?? "587";
         var smtpUser = _configuration["EmailSettings:Username"] ?? _configuration["EmailSettings__Username"] ?? "";
@@ -26,7 +26,9 @@ public class EmailService : IEmailService
         if (!int.TryParse(smtpPortStr, out var smtpPort))
             smtpPort = 587;
 
-        Console.WriteLine($"[EMAIL] Host={smtpHost}, Porta={smtpPort}, User={smtpUser}, Pass={string.IsNullOrEmpty(smtpPass) ? "NÃO DEFINIDA" : "***"}");
+        // CORREÇÃO: parentizar o ternário para evitar erro de compilação
+        var passDisplay = string.IsNullOrEmpty(smtpPass) ? "NÃO DEFINIDA" : "***";
+        Console.WriteLine($"[EMAIL] Host={smtpHost}, Porta={smtpPort}, User={smtpUser}, Pass={passDisplay}");
 
         if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass))
         {
@@ -42,7 +44,6 @@ public class EmailService : IEmailService
 
         using (var client = new SmtpClient())
         {
-            // Aumenta o timeout para 15 segundos
             client.Timeout = 15000;
 
             Console.WriteLine("[EMAIL] Conectando ao SMTP...");
@@ -59,7 +60,7 @@ public class EmailService : IEmailService
             catch (Exception ex)
             {
                 Console.WriteLine($"[EMAIL] ERRO: {ex.Message}");
-                throw; // Re-lança para o chamador lidar
+                throw;
             }
         }
     }

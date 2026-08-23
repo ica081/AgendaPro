@@ -100,19 +100,20 @@ builder.Services.AddHttpClient<EmailService>();
 var app = builder.Build();
 
 // =======================
-// APLICA MIGRAÇÕES AUTOMATICAMENTE
+// APLICA MIGRAÇÕES AUTOMATICAMENTE (SUBSTITUÍDO POR EnsureCreated)
 // =======================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        await db.Database.MigrateAsync();
-        Console.WriteLine("[DB] Migrações aplicadas com sucesso.");
+        // Cria o banco e as tabelas se não existirem (sem usar migrações)
+        await db.Database.EnsureCreatedAsync();
+        Console.WriteLine("[DB] Banco de dados e tabelas criados/verificados com sucesso.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[DB] Erro ao aplicar migrações: {ex.Message}");
+        Console.WriteLine($"[DB] Erro ao criar banco: {ex.Message}");
         throw;
     }
 }

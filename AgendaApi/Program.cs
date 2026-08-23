@@ -53,6 +53,7 @@ builder.Services.AddOpenApi();
 // =======================
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<ReminderService>();
+builder.Services.AddHttpClient<EmailService>();
 
 var app = builder.Build();
 

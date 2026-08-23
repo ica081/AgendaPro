@@ -17,8 +17,30 @@ Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
 
 var builder = WebApplication.CreateBuilder(args);
 
+// =======================
+// CONFIGURAÇÃO DO BANCO DE DADOS (PostgreSQL)
+// =======================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["DATABASE_URL"]
+    ?? "postgresql://agendauser:px5qaws6QNdfO1fr4CMxv7LdUtlxa5c2@dpg-da5kbebl550s73d4oeag-a/agendadb_13ul";
+
+// Para o Render, a string de conexão pode vir no formato postgresql://, mas o Npgsql espera "Host=...;Database=...;Username=...;Password=..."
+// Se for uma URL, convertemos para o formato de connection string
+if (connectionString.StartsWith("postgresql://"))
+{
+    var uri = new Uri(connectionString);
+    var userInfo = uri.UserInfo.Split(':');
+    var host = uri.Host;
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var database = uri.LocalPath.TrimStart('/');
+    var username = userInfo[0];
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=agenda.db"));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddCors(options =>
 {
@@ -57,10 +79,14 @@ builder.Services.AddHttpClient<EmailService>();
 
 var app = builder.Build();
 
+// =======================
+// APLICAR MIGRAÇÕES AUTOMATICAMENTE (Opcional)
+// =======================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    // db.Database.EnsureCreated(); // Não use com migrations, prefira:
+    db.Database.Migrate(); // Aplica migrações pendentes
 }
 
 if (app.Environment.IsDevelopment())
@@ -1478,4 +1504,3 @@ public class UpdateClientProfileRequest
     public string? Phone { get; set; }
     public Dictionary<string, object>? Preferences { get; set; }
 }
-

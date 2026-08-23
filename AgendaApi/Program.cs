@@ -1477,3 +1477,4 @@ public class UpdateClientProfileRequest
     public string? Phone { get; set; }
     public Dictionary<string, object>? Preferences { get; set; }
 }
+

@@ -1,5 +1,5 @@
-using System.Text;
-using System.Text.Json;
+using MailKit.Net.Smtp;
+using MimeKit;
 using Microsoft.Extensions.Configuration;
 
 namespace AgendaApi.Services;
@@ -7,73 +7,61 @@ namespace AgendaApi.Services;
 public class EmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
-    private readonly HttpClient _httpClient;
 
-    public EmailService(IConfiguration configuration, HttpClient httpClient)
+    public EmailService(IConfiguration configuration)
     {
         _configuration = configuration;
-        _httpClient = httpClient;
     }
 
     public async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
     {
-        Console.WriteLine($"[EMAIL] Iniciando envio para {toEmail} via API Mailjet");
+        Console.WriteLine($"[EMAIL] Iniciando envio para {toEmail} via Gmail SMTP");
 
-        // Lê as credenciais da API (chave pública e secreta)
-        var apiKey = _configuration["EmailSettings:ApiKey"] ?? _configuration["EmailSettings__ApiKey"] ?? "";
-        var apiSecret = _configuration["EmailSettings:ApiSecret"] ?? _configuration["EmailSettings__ApiSecret"] ?? "";
-        var fromEmail = _configuration["EmailSettings:FromEmail"] ?? _configuration["EmailSettings__FromEmail"] ?? "seu-email-verificado@dominio.com";
+        // Lê as configurações
+        var smtpHost = _configuration["EmailSettings:SmtpHost"] ?? _configuration["EmailSettings__SmtpHost"] ?? "smtp.gmail.com";
+        var smtpPortStr = _configuration["EmailSettings:SmtpPort"] ?? _configuration["EmailSettings__SmtpPort"] ?? "587";
+        var smtpUser = _configuration["EmailSettings:Username"] ?? _configuration["EmailSettings__Username"] ?? "";
+        var smtpPass = _configuration["EmailSettings:Password"] ?? _configuration["EmailSettings__Password"] ?? "";
 
-        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
+        if (!int.TryParse(smtpPortStr, out var smtpPort))
+            smtpPort = 587;
+
+        var passDisplay = string.IsNullOrEmpty(smtpPass) ? "NÃO DEFINIDA" : "***";
+        Console.WriteLine($"[EMAIL] Host={smtpHost}, Porta={smtpPort}, User={smtpUser}, Pass={passDisplay}");
+
+        if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass))
         {
-            Console.WriteLine("[EMAIL] ERRO: Credenciais da API Mailjet não configuradas!");
-            throw new Exception("Credenciais da API Mailjet não configuradas.");
+            Console.WriteLine("[EMAIL] ERRO: Credenciais não configuradas!");
+            throw new Exception("Credenciais de e-mail não configuradas.");
         }
 
-        // Construir o payload da API Mailjet
-        var payload = new
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("AgendaPro", smtpUser));
+        message.To.Add(new MailboxAddress("Cliente", toEmail));
+        message.Subject = subject;
+        message.Body = new TextPart("html") { Text = htmlBody };
+
+        using (var client = new SmtpClient())
         {
-            Messages = new[]
+            // Timeout aumentado para 30 segundos
+            client.Timeout = 30000;
+
+            Console.WriteLine("[EMAIL] Conectando ao SMTP...");
+            try
             {
-                new
-                {
-                    From = new { Email = fromEmail, Name = "AgendaPro" },
-                    To = new[] { new { Email = toEmail, Name = "Cliente" } },
-                    Subject = subject,
-                    HTMLPart = htmlBody
-                }
+                await client.ConnectAsync(smtpHost, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+                Console.WriteLine("[EMAIL] Conectado. Autenticando...");
+                await client.AuthenticateAsync(smtpUser, smtpPass);
+                Console.WriteLine("[EMAIL] Autenticado. Enviando mensagem...");
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+                Console.WriteLine("[EMAIL] Mensagem enviada com sucesso!");
             }
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        // Autenticação Basic (chave pública + chave secreta)
-        var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{apiKey}:{apiSecret}"));
-        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", auth);
-
-        // URL da API Mailjet (versão 3.1)
-        var url = "https://api.mailjet.com/v3.1/send";
-
-        Console.WriteLine("[EMAIL] Enviando requisição para API Mailjet...");
-
-        try
-        {
-            var response = await _httpClient.PostAsync(url, content);
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                Console.WriteLine($"[EMAIL] Erro na API: {response.StatusCode} - {responseBody}");
-                throw new Exception($"Erro ao enviar e-mail: {response.StatusCode} - {responseBody}");
+                Console.WriteLine($"[EMAIL] ERRO: {ex.Message}");
+                throw;
             }
-
-            Console.WriteLine($"[EMAIL] E-mail enviado com sucesso! Resposta: {responseBody}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[EMAIL] ERRO: {ex.Message}");
-            throw;
         }
     }
 }

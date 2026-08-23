@@ -22,21 +22,21 @@ var builder = WebApplication.CreateBuilder(args);
 // =======================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["DATABASE_URL"]
-    ?? "postgresql://agendauser:px5qaws6QNdfO1fr4CMxv7LdUtlxa5c2@dpg-da5kbebl550s73d4oeag-a/agendadb_13ul";
+    ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
 
-// Para o Render, a string de conexão pode vir no formato postgresql://, mas o Npgsql espera "Host=...;Database=...;Username=...;Password=..."
-// Se for uma URL, convertemos para o formato de connection string
+if (string.IsNullOrEmpty(connectionString))
+{
+    Console.WriteLine("[DB] ERRO: String de conexão não encontrada!");
+    throw new Exception("String de conexão com o banco de dados não configurada.");
+}
+
+// Converte a string do Render (postgresql://...) para o formato do Npgsql
 if (connectionString.StartsWith("postgresql://"))
 {
+    // Remove o prefixo "postgresql://" e ajusta para o formato esperado
     var uri = new Uri(connectionString);
     var userInfo = uri.UserInfo.Split(':');
-    var host = uri.Host;
-    var port = uri.Port > 0 ? uri.Port : 5432;
-    var database = uri.LocalPath.TrimStart('/');
-    var username = userInfo[0];
-    var password = userInfo.Length > 1 ? userInfo[1] : "";
-
-    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true;";
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -80,13 +80,21 @@ builder.Services.AddHttpClient<EmailService>();
 var app = builder.Build();
 
 // =======================
-// APLICAR MIGRAÇÕES AUTOMATICAMENTE (Opcional)
+// APLICA MIGRAÇÕES AUTOMATICAMENTE (evita EnsureCreated)
 // =======================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // db.Database.EnsureCreated(); // Não use com migrations, prefira:
-    db.Database.Migrate(); // Aplica migrações pendentes
+    try
+    {
+        await db.Database.MigrateAsync();
+        Console.WriteLine("[DB] Migrações aplicadas com sucesso.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB] Erro ao aplicar migrações: {ex.Message}");
+        throw;
+    }
 }
 
 if (app.Environment.IsDevelopment())

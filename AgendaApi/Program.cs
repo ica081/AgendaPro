@@ -41,7 +41,13 @@ if (connectionString.StartsWith("postgresql://"))
     {
         var uri = new Uri(connectionString);
         var userInfo = uri.UserInfo.Split(':');
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true;";
+        // CORREÇÃO: se a porta for -1 ou 0, usa 5432 (padrão do PostgreSQL)
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var host = uri.Host;
+        var username = userInfo[0];
+        var password = userInfo[1];
+        connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
         Console.WriteLine($"[DB] String convertida: {connectionString}");
     }
     catch (Exception ex)

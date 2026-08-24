@@ -20,9 +20,6 @@ var builder = WebApplication.CreateBuilder(args);
 // =======================
 // CONFIGURAÇÃO DO BANCO DE DADOS (PostgreSQL)
 // =======================
-// Prioridade: ConnectionStrings__DefaultConnection (já está no formato Npgsql)
-// Depois: DATABASE_URL (formato postgresql://...)
-// Depois: DefaultConnection (via IConfiguration)
 var connectionString = builder.Configuration["ConnectionStrings__DefaultConnection"]
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["DATABASE_URL"];
@@ -33,7 +30,6 @@ if (string.IsNullOrEmpty(connectionString))
     throw new Exception("String de conexão com o banco de dados não configurada.");
 }
 
-// Se a string veio no formato postgresql:// (de DATABASE_URL), converte para o formato Npgsql
 if (connectionString.StartsWith("postgresql://"))
 {
     Console.WriteLine("[DB] Convertendo DATABASE_URL para formato Npgsql...");
@@ -41,7 +37,6 @@ if (connectionString.StartsWith("postgresql://"))
     {
         var uri = new Uri(connectionString);
         var userInfo = uri.UserInfo.Split(':');
-        // CORREÇÃO: se a porta for -1 ou 0, usa 5432 (padrão do PostgreSQL)
         var port = uri.Port > 0 ? uri.Port : 5432;
         var database = uri.AbsolutePath.TrimStart('/');
         var host = uri.Host;
@@ -66,7 +61,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -100,14 +97,13 @@ builder.Services.AddHttpClient<EmailService>();
 var app = builder.Build();
 
 // =======================
-// APLICA MIGRAÇÕES AUTOMATICAMENTE (SUBSTITUÍDO POR EnsureCreated)
+// APLICA MIGRAÇÕES / CRIA BANCO
 // =======================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        // Cria o banco e as tabelas se não existirem (sem usar migrações)
         await db.Database.EnsureCreatedAsync();
         Console.WriteLine("[DB] Banco de dados e tabelas criados/verificados com sucesso.");
     }
@@ -121,6 +117,9 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
+// =======================
+// ORDEM DOS MIDDLEWARES (CORS PRIMEIRO)
+// =======================
 app.UseCors("DevCors");
 app.UseAuthentication();
 app.UseAuthorization();

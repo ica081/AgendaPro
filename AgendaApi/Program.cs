@@ -118,27 +118,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 // =======================
-// CORS MANUAL (GARANTE ACESSO EM TODAS AS RESPOSTAS)
+// ORDEM DOS MIDDLEWARES (CORS PRIMEIRO)
 // =======================
-app.Use(async (context, next) =>
-{
-    // Log da requisição para debug
-    Console.WriteLine($"[CORS] Requisição: {context.Request.Method} {context.Request.Path}");
-
-    // Adiciona cabeçalhos CORS em todas as respostas
-    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-    if (context.Request.Method == "OPTIONS")
-    {
-        context.Response.StatusCode = 200;
-        await context.Response.CompleteAsync();
-        return;
-    }
-
-    await next();
-});
+app.UseCors("DevCors");
+app.UseAuthentication();
+app.UseAuthorization();
 
 // =======================
 // MIDDLEWARE DE REESCRITA PARA PUBLIC-AGENDAR.HTML
@@ -152,10 +136,6 @@ app.Use(async (context, next) =>
     }
     await next();
 });
-
-app.UseCors("DevCors");
-app.UseAuthentication();
-app.UseAuthorization();
 
 // =======================
 // HELPERS - VALIDAÇÕES E EMAIL

@@ -58,10 +58,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // =======================
-// REMOVEMOS A CONFIGURAÇÃO DE CORS NOMEADA
+// CHAVE JWT (DECLARADA AQUI PARA USO EM TODOS OS ENDPOINTS)
 // =======================
-// builder.Services.AddCors(...)  // não precisa mais
+var jwtKey = "CHAVE_SUPER_SECRETA_AGENDA_API_123456";
 
+// =======================
+// AUTENTICAÇÃO JWT
+// =======================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -94,12 +97,10 @@ var app = builder.Build();
 // =======================
 app.Use(async (context, next) =>
 {
-    // Adiciona os cabeçalhos CORS a TODAS as respostas
     context.Response.Headers["Access-Control-Allow-Origin"] = "*";
     context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
     context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, X-Requested-With";
 
-    // Se for uma requisição OPTIONS (preflight), responde imediatamente com 200
     if (context.Request.Method == "OPTIONS")
     {
         context.Response.StatusCode = 200;
@@ -146,9 +147,6 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
-// =======================
-// ORDEM DOS MIDDLEWARES (AGORA SEM CORS NOMEADO)
-// =======================
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -900,7 +898,6 @@ app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db,
     if (employee == null)
         return Results.BadRequest("Funcionário inválido.");
 
-    // --- CORREÇÃO: NÃO CONVERTER FUSO ---
     DateTime startTime = request.StartTime;
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
@@ -979,7 +976,6 @@ app.MapPut("/appointments/{id}", async (Guid id, UpdateAppointmentRequest reques
         appointment.EmployeeId = request.EmployeeId.Value;
     }
 
-    // --- CORREÇÃO: NÃO CONVERTER FUSO ---
     DateTime startTime = request.StartTime ?? appointment.StartTime;
     int durationMinutes = appointment.Service?.DurationMinutes ?? 30;
     var endTime = startTime.AddMinutes(durationMinutes);
@@ -1069,7 +1065,6 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
     var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId && e.CompanyId == companyId);
     if (employee == null) return Results.BadRequest("Funcionário inválido.");
 
-    // --- CORREÇÃO: NÃO CONVERTER FUSO ---
     DateTime startTime = request.StartTime;
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
@@ -1235,7 +1230,6 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         }
         catch { }
 
-        // --- CORREÇÃO: NÃO CONVERTER FUSO HORÁRIO ---
         DateTime startTime = request.StartTime;
         var endTime = startTime.AddMinutes(service.DurationMinutes);
 

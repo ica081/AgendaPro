@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using MailKit.Net.Smtp;
 using MimeKit;
 using System.Net;
+using System.Globalization; // ADICIONADO para CultureInfo
 
 // Evita erro de inotify no Render (FileSystemWatcher)
 Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
@@ -1157,16 +1158,27 @@ app.MapGet("/public/slots", async (Guid companyId, string date, AppDbContext db)
     return Results.Ok(slots.Select(s => s.ToString("HH:mm")));
 });
 
+// =======================
+// ENDPOINT /public/occupied-slots - CORRIGIDO
+// =======================
 app.MapGet("/public/occupied-slots", async (Guid companyId, string date, Guid employeeId, AppDbContext db) =>
 {
-    if (!DateTime.TryParse(date, out var day))
-        return Results.BadRequest("Data inválida.");
+    // Usa TryParseExact com formato yyyy-MM-dd e assume UTC
+    if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var day))
+        return Results.BadRequest("Data inválida. Formato esperado: YYYY-MM-DD");
+
+    // Força UTC
+    day = DateTime.SpecifyKind(day, DateTimeKind.Utc);
+
+    var startOfDay = day.Date;
+    var endOfDay = startOfDay.AddDays(1);
 
     var occupied = await db.Appointments
         .Where(a => a.CompanyId == companyId &&
                     a.EmployeeId == employeeId &&
                     a.Status == "Active" &&
-                    a.StartTime.Date == day.Date)
+                    a.StartTime >= startOfDay &&
+                    a.StartTime < endOfDay)
         .Select(a => a.StartTime.ToString("HH:mm"))
         .ToListAsync();
 

@@ -426,6 +426,18 @@ Guid? GetCompanyId(ClaimsPrincipal user)
     return null;
 }
 
+// =======================
+// FUNÇÃO PARA CONVERTER DATETIME PARA UTC (SE NECESSÁRIO)
+// =======================
+DateTime EnsureUtc(DateTime dt)
+{
+    if (dt.Kind == DateTimeKind.Local)
+        return dt.ToUniversalTime();
+    if (dt.Kind == DateTimeKind.Unspecified)
+        return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+    return dt; // já é UTC
+}
+
 List<TimeRange> GetAvailablePeriods(Company company, DateTime date)
 {
     var schedule = company.WorkSchedule;
@@ -485,7 +497,7 @@ async Task<string?> ValidateClientAppointments(AppDbContext db, string clientEma
     if (string.IsNullOrWhiteSpace(clientEmail))
         return null;
 
-    var now = DateTime.Now;
+    var now = DateTime.UtcNow; // usa UTC
 
     var query = db.Appointments
         .Where(a => a.CompanyId == companyId &&
@@ -898,7 +910,7 @@ app.MapPost("/schedules", async (CreateScheduleRequest request, AppDbContext db,
     if (employee == null)
         return Results.BadRequest("Funcionário inválido.");
 
-    DateTime startTime = request.StartTime;
+    DateTime startTime = EnsureUtc(request.StartTime);
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
     var slots = GenerateSlots(company, startTime.Date);
@@ -976,7 +988,7 @@ app.MapPut("/appointments/{id}", async (Guid id, UpdateAppointmentRequest reques
         appointment.EmployeeId = request.EmployeeId.Value;
     }
 
-    DateTime startTime = request.StartTime ?? appointment.StartTime;
+    DateTime startTime = EnsureUtc(request.StartTime ?? appointment.StartTime);
     int durationMinutes = appointment.Service?.DurationMinutes ?? 30;
     var endTime = startTime.AddMinutes(durationMinutes);
 
@@ -1065,7 +1077,7 @@ app.MapPost("/client/schedules/{companyId}", async (Guid companyId, CreateSchedu
     var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId && e.CompanyId == companyId);
     if (employee == null) return Results.BadRequest("Funcionário inválido.");
 
-    DateTime startTime = request.StartTime;
+    DateTime startTime = EnsureUtc(request.StartTime);
     var endTime = startTime.AddMinutes(service.DurationMinutes);
 
     var slots = GenerateSlots(company, startTime.Date);
@@ -1230,7 +1242,7 @@ app.MapPost("/public/schedules", async (Guid companyId, CreateScheduleRequest re
         }
         catch { }
 
-        DateTime startTime = request.StartTime;
+        DateTime startTime = EnsureUtc(request.StartTime);
         var endTime = startTime.AddMinutes(service.DurationMinutes);
 
         var slots = GenerateSlots(company, startTime.Date);

@@ -57,17 +57,10 @@ Console.WriteLine($"[DB] Usando string de conexão: {connectionString}");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("DevCors", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
-var jwtKey = "CHAVE_SUPER_SECRETA_AGENDA_API_123456";
+// =======================
+// REMOVEMOS A CONFIGURAÇÃO DE CORS NOMEADA
+// =======================
+// builder.Services.AddCors(...)  // não precisa mais
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -97,6 +90,42 @@ builder.Services.AddHttpClient<EmailService>();
 var app = builder.Build();
 
 // =======================
+// MIDDLEWARE DE CORS MANUAL (FORÇA OS CABEÇALHOS EM TODAS AS RESPOSTAS)
+// =======================
+app.Use(async (context, next) =>
+{
+    // Adiciona os cabeçalhos CORS a TODAS as respostas
+    context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+    context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+    context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, X-Requested-With";
+
+    // Se for uma requisição OPTIONS (preflight), responde imediatamente com 200
+    if (context.Request.Method == "OPTIONS")
+    {
+        context.Response.StatusCode = 200;
+        await context.Response.CompleteAsync();
+        return;
+    }
+
+    await next();
+});
+
+// =======================
+// MIDDLEWARE DE TRATAMENTO DE EXCEÇÕES (GARANTE CORS MESMO EM ERROS)
+// =======================
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+        context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+        context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, X-Requested-With";
+        await context.Response.WriteAsync("Ocorreu um erro interno no servidor.");
+    });
+});
+
+// =======================
 // APLICA MIGRAÇÕES / CRIA BANCO
 // =======================
 using (var scope = app.Services.CreateScope())
@@ -118,9 +147,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 // =======================
-// ORDEM DOS MIDDLEWARES (CORS PRIMEIRO)
+// ORDEM DOS MIDDLEWARES (AGORA SEM CORS NOMEADO)
 // =======================
-app.UseCors("DevCors");
 app.UseAuthentication();
 app.UseAuthorization();
 
